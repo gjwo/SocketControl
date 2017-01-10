@@ -22,8 +22,8 @@ public class SocketControl
         ALL(PinState.LOW,PinState.HIGH,PinState.HIGH),
         SOCKET1(PinState.HIGH,PinState.HIGH,PinState.HIGH),
         SOCKET2(PinState.HIGH,PinState.HIGH,PinState.LOW),
-        @SuppressWarnings("unused")SOCKET3(PinState.HIGH,PinState.LOW,PinState.HIGH),
-        @SuppressWarnings("unused")SOCKET4(PinState.HIGH,PinState.LOW,PinState.LOW);
+        SOCKET3(PinState.HIGH,PinState.LOW,PinState.HIGH),
+        SOCKET4(PinState.HIGH,PinState.LOW,PinState.LOW);
 
         final PinState pinK1;
         final PinState pinK2;
@@ -122,5 +122,15 @@ public class SocketControl
         }
         modulatorEnablePin.setState(PinState.LOW);
         System.out.println(socket.name()+" switched "+ state.name());
+    }
+
+    public void blinkSocket(SocketCode socket, int seconds)
+    {
+        switchSocket(socket, SocketControl.SocketState.ON);
+        try
+        {
+            TimeUnit.SECONDS.sleep(seconds);
+        } catch (InterruptedException ignored){}
+        switchSocket(socket, SocketControl.SocketState.OFF);
     }
  }
