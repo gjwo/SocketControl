@@ -1,0 +1,11 @@
+<component name="ArtifactManager">
+  <artifact name="SocketControl:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/SocketControl_jar</output-path>
+    <root id="root">
+      <element id="archive" name="SocketControl.jar">
+        <element id="module-output" name="SocketControl" />
+      </element>
+      <element id="library" level="project" name="Maven: com.pi4j:pi4j-core:1.2-SNAPSHOT" />
+    </root>
+  </artifact>
+</component>

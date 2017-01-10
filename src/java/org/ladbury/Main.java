@@ -18,51 +18,37 @@ public class Main {
         try
         {
             TimeUnit.SECONDS.sleep(3);
-        } catch (InterruptedException e)
-        {
-            Ignore;
-        }
+        } catch (InterruptedException ignored){}
         s.switchSocket(SocketControl.SocketCode.SOCKET1, SocketControl.SocketState.ON);
         try
         {
             TimeUnit.SECONDS.sleep(3);
-        } catch (InterruptedException e)
-        {
-        }
+        } catch (InterruptedException ignored){}
         s.switchSocket(SocketControl.SocketCode.SOCKET2, SocketControl.SocketState.ON);
         try
         {
             TimeUnit.SECONDS.sleep(3);
-        } catch (InterruptedException e)
-        {
-        }
+        } catch (InterruptedException ignored){}
         s.switchSocket(SocketControl.SocketCode.SOCKET1, SocketControl.SocketState.OFF);
         try
         {
             TimeUnit.SECONDS.sleep(3);
-        } catch (InterruptedException e)
-        {
-        }
+        } catch (InterruptedException ignored){}
         s.switchSocket(SocketControl.SocketCode.SOCKET2, SocketControl.SocketState.OFF);
         try
         {
             TimeUnit.SECONDS.sleep(3);
-        } catch (InterruptedException e)
-        {
-        }
+        } catch (InterruptedException ignored){}
+
         s.switchSocket(SocketControl.SocketCode.ALL, SocketControl.SocketState.ON);
         try
         {
             TimeUnit.SECONDS.sleep(3);
-        } catch (InterruptedException e)
-        {
-        }
+        } catch (InterruptedException ignored){}
         s.switchSocket(SocketControl.SocketCode.ALL, SocketControl.SocketState.OFF);
         try
         {
             TimeUnit.SECONDS.sleep(3);
-        } catch (InterruptedException e)
-        {
-        }
+        } catch (InterruptedException ignored) {}
     }
 }
