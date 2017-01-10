@@ -87,6 +87,7 @@ public class SocketControl
         this.pinK1.setShutdownOptions(true, PinState.LOW);
         this.pinK2.setShutdownOptions(true, PinState.LOW);
         this.pinK3.setShutdownOptions(true, PinState.LOW);
+        System.out.println("Socket Control initialised");
     }
     /**
      * switchSocket     -   Switches the specified socket to the required state
@@ -114,5 +115,6 @@ public class SocketControl
         {
         }
         modulatorEnablePin.low();
+        System.out.println(socket.name()+" switched "+ state.name());
     }
  }
