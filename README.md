@@ -1,2 +1,2 @@
 # SocketControl
-Java project for controlling EnerGenie sockets from a Raspberry Pi
+Java project for controlling Energenie sockets from a Raspberry Pi

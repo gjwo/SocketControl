@@ -1,4 +1,4 @@
 Manifest-Version: 1.0
 Class-Path: pi4j-core-1.2-20161229.215408-19.jar
-Main-Class: org.ladbury.sockets.Main
+Main-Class: org.ladbury.Main
 

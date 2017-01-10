@@ -22,8 +22,8 @@ public class SocketControl
         ALL(PinState.LOW,PinState.HIGH,PinState.HIGH),
         SOCKET1(PinState.HIGH,PinState.HIGH,PinState.HIGH),
         SOCKET2(PinState.HIGH,PinState.HIGH,PinState.LOW),
-        SOCKET3(PinState.HIGH,PinState.LOW,PinState.HIGH),
-        SOCKET4(PinState.HIGH,PinState.LOW,PinState.LOW);
+        @SuppressWarnings("unused")SOCKET3(PinState.HIGH,PinState.LOW,PinState.HIGH),
+        @SuppressWarnings("unused")SOCKET4(PinState.HIGH,PinState.LOW,PinState.LOW);
 
         final PinState pinK1;
         final PinState pinK2;
@@ -54,6 +54,7 @@ public class SocketControl
     private final GpioPinDigitalOutput pinK1;
     private final GpioPinDigitalOutput pinK2;
     private final GpioPinDigitalOutput pinK3;
+    @SuppressWarnings("FieldCanBeLocal")
     private final GpioPinDigitalOutput modulationSelectPin;
     private final GpioPinDigitalOutput modulatorEnablePin;
 
@@ -65,7 +66,7 @@ public class SocketControl
         final GpioController gpio = GpioFactory.getInstance();
 
         // set the pins numbering mode
-        // GPIO.setmode(GPIO.BOARD)
+        // GPIO.setMode(GPIO.BOARD)
 
         //Select the signal used to enable/disable the modulator
         this.modulatorEnablePin = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_22, "CE", PinState.LOW);

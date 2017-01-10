@@ -1,7 +1,5 @@
 package org.ladbury;
 
-import jdk.nashorn.internal.ir.annotations.Ignore;
-
 import java.util.concurrent.TimeUnit;
 
 public class Main {
