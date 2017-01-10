@@ -11,8 +11,6 @@ import java.util.concurrent.TimeUnit;
 public class SocketControl
 {
 
-    //To clear the socket programming, press the green button for 5 seconds or more until the red light flashes slowly
-    //The socket is now in its learning mode and listening for a control code to be sent.
     // 4 bits select and control the sockets b3,b2,b1,b0 , setting 0 is pin low, 1 is pin high
     // b3 controls on or off: b3 = 0 is off, b3 = 1 is on
     // b2 controls all sockets / individual sockets b2 = 0 is all, b2 = 0 is individual
@@ -56,10 +54,12 @@ public class SocketControl
     private final GpioPinDigitalOutput pinK1;
     private final GpioPinDigitalOutput pinK2;
     private final GpioPinDigitalOutput pinK3;
-    private final GpioPinDigitalOutput modulationSelect;
-    private final GpioPinDigitalOutput modulatorEnable;
+    private final GpioPinDigitalOutput modulationSelectPin;
+    private final GpioPinDigitalOutput modulatorEnablePin;
 
-
+    /**
+     * SocketControl    -   Constructor, sets up the GPIO pins required to control the sockets
+     */
     public SocketControl()
     {
         final GpioController gpio = GpioFactory.getInstance();
@@ -68,13 +68,13 @@ public class SocketControl
         // GPIO.setmode(GPIO.BOARD)
 
         //Select the signal used to enable/disable the modulator
-        this.modulatorEnable = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_22, "CE", PinState.LOW);
-        this.modulatorEnable.setShutdownOptions(true, PinState.LOW);
+        this.modulatorEnablePin = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_22, "CE", PinState.LOW);
+        this.modulatorEnablePin.setShutdownOptions(true, PinState.LOW);
 
         // Select the GPIO pin used to select Modulation ASK/FSK
         // Set the modulator to ASK for On Off Keying by setting MODSEL pin low
-        this.modulationSelect = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_18, "ASK/FSK", PinState.LOW);
-        this.modulationSelect.setShutdownOptions(true, PinState.LOW);
+        this.modulationSelectPin = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_18, "ASK/FSK", PinState.LOW);
+        this.modulationSelectPin.setShutdownOptions(true, PinState.LOW);
 
         // Select the GPIO pins used for the encoder K0-K3 data inputs
         // and initialise K0-K3 inputs of the encoder to 0000
@@ -87,7 +87,11 @@ public class SocketControl
         this.pinK2.setShutdownOptions(true, PinState.LOW);
         this.pinK3.setShutdownOptions(true, PinState.LOW);
     }
-
+    /**
+     * switchSocket     -   Switches the specified socket to the required state
+     * @param socket    -   Socket 1-4 or ALL
+     * @param state     -   ON or OFF
+     */
     public void switchSocket(SocketCode socket, SocketState state)
     {
         this.pinK0.setState(state.state);
@@ -101,13 +105,13 @@ public class SocketControl
         } catch (InterruptedException ignored)
         {
         }
-        modulatorEnable.high();
+        modulatorEnablePin.high();
         try
         {
             TimeUnit.MILLISECONDS.sleep(250);// delay to socket to action command
         } catch (InterruptedException ignored)
         {
         }
-        modulatorEnable.low();
+        modulatorEnablePin.low();
     }
  }
