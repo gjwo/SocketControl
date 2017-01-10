@@ -42,5 +42,6 @@ public class Main {
         {
             TimeUnit.SECONDS.sleep(3);
         } catch (InterruptedException ignored) {}
+        System.exit(0);
     }
 }

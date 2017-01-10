@@ -65,24 +65,30 @@ public class SocketControl
     {
         final GpioController gpio = GpioFactory.getInstance();
 
-        // set the pins numbering mode
-        // GPIO.setMode(GPIO.BOARD)
+        // the pins numbering scheme is different using pi4j
+        // GPIO pinout uses the Pi4J/WiringPi GPIO numbering scheme.
 
         //Select the signal used to enable/disable the modulator
-        this.modulatorEnablePin = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_22, "CE", PinState.LOW);
+        //was 22 now 06
+        this.modulatorEnablePin = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_06, "CE", PinState.LOW);
         this.modulatorEnablePin.setShutdownOptions(true, PinState.LOW);
 
         // Select the GPIO pin used to select Modulation ASK/FSK
         // Set the modulator to ASK for On Off Keying by setting MODSEL pin low
-        this.modulationSelectPin = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_18, "ASK/FSK", PinState.LOW);
+        //was 18 now 05
+        this.modulationSelectPin = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_05, "ASK/FSK", PinState.LOW);
         this.modulationSelectPin.setShutdownOptions(true, PinState.LOW);
 
         // Select the GPIO pins used for the encoder K0-K3 data inputs
         // and initialise K0-K3 inputs of the encoder to 0000
-        this.pinK0 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_11, "K0", PinState.LOW);
-        this.pinK1 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_15, "K1", PinState.LOW);
-        this.pinK2 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_16, "K2", PinState.LOW);
-        this.pinK3 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_13, "K3", PinState.LOW);
+        //was 11 now 00
+        this.pinK0 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_00, "K0", PinState.LOW);
+        //was 15 now 03
+        this.pinK1 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_03, "K1", PinState.LOW);
+        //was 16 now 04
+        this.pinK2 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_04, "K2", PinState.LOW);
+        //was 13 now 02
+        this.pinK3 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_02, "K3", PinState.LOW);
         this.pinK0.setShutdownOptions(true, PinState.LOW);
         this.pinK1.setShutdownOptions(true, PinState.LOW);
         this.pinK2.setShutdownOptions(true, PinState.LOW);
@@ -107,14 +113,14 @@ public class SocketControl
         } catch (InterruptedException ignored)
         {
         }
-        modulatorEnablePin.high();
+        modulatorEnablePin.setState(PinState.HIGH);
         try
         {
             TimeUnit.MILLISECONDS.sleep(250);// delay to socket to action command
         } catch (InterruptedException ignored)
         {
         }
-        modulatorEnablePin.low();
+        modulatorEnablePin.setState(PinState.LOW);
         System.out.println(socket.name()+" switched "+ state.name());
     }
  }
