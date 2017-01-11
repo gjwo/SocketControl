@@ -78,7 +78,7 @@
                         </manifest>
                         <manifestEntries>
                             <!-- Add the pi4j in runtime. -->
-                            <Class-Path>${pi.pi4j.Directory}/pi4j-core.jar</Class-Path>
+                            <Class-Path>.:${pi.pi4j.Directory}/pi4j-core.jar</Class-Path>
                         </manifestEntries>
                     </archive>
                 </configuration>
