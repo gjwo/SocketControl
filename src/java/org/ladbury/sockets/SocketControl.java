@@ -115,15 +115,11 @@ public class SocketControl
         SocketCode socket = socketMap.get(s);
         SocketState state = SocketState.OFF;
         if (on) state = SocketState.ON;
-        this.pinD0.setState(state.state);
-        this.pinD1.setState(socket.pinD2);
-        this.pinD2.setState(socket.pinD1);
-        this.pinD3.setState(socket.pinD0);
-        if (socket == SocketCode.ALL)
-        {
-            this.pinD1.setState(PinState.LOW);
-            if(state == SocketState.ON) this.pinD0.setState(PinState.LOW); else this.pinD0.setState(PinState.HIGH);
-        }
+        this.pinD3.setState(state.state);
+
+        this.pinD0.setState(socket.pinD0);
+        this.pinD1.setState(socket.pinD1);
+        this.pinD2.setState(socket.pinD2);
         try
         {
             TimeUnit.MILLISECONDS.sleep(100);// delay to allow encoder to settle
