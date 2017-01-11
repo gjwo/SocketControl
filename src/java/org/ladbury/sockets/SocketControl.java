@@ -154,20 +154,56 @@ public class SocketControl
 
     /**
      * programSocket    -   sends signals to a socket to allow it to learn it's code
-     * @param socket    -   socket number 1-4 only
+     * @param s    -   socket number 1-4 only
      */
-    public void programSocket(int socket)
+    public void programSocket(int s)
     {
         System.out.println("To clear the socket programming, press the green button");
         System.out.println("for 5 seconds or more until the red light flashes slowly");
         System.out.println("The socket is now in its learning mode and listening for");
-        System.out.println("a control code to be sent to switch the socket on and off (3 attempts)");
+        System.out.println("a control code to be sent");
+        SocketCode socket = socketMap.get(s);
+
+        //*********************Long On*************************************
+        SocketState state = SocketState.ON;
+        System.out.println(socket.name()+" switched "+ state.name());
+        this.pinD3.setState(PinState.HIGH);
+
+        this.pinD0.setState(socket.pinD0); //Select socket
+        this.pinD1.setState(socket.pinD1);
+        this.pinD2.setState(socket.pinD2);
         try
         {
-            TimeUnit.SECONDS.sleep(7); //give time for the socket to be put in learning mode
+            TimeUnit.MILLISECONDS.sleep(100);// delay to allow encoder to settle
         } catch (InterruptedException ignored){}
-        blinkSocket(socket,2);
-        blinkSocket(socket,2);
-        blinkSocket(socket,2);
-     }
+        modulatorEnablePin.setState(PinState.HIGH); //enable modulator to send signal
+        try
+        {
+            TimeUnit.SECONDS.sleep(15);     // delay to allows ocket to action command longer for training
+        } catch (InterruptedException ignored){}
+        modulatorEnablePin.setState(PinState.LOW);  //disable modulator
+
+        System.out.println("Put socket back in training mode");
+        try
+        {
+            TimeUnit.SECONDS.sleep(10);// delay to allow socket to action command longer for training
+        } catch (InterruptedException ignored){}
+
+        //*********************Long Off*************************************
+        state = SocketState.OFF;
+        System.out.println(socket.name()+" switched "+ state.name());
+        this.pinD3.setState(PinState.LOW);
+        try
+        {
+            TimeUnit.MILLISECONDS.sleep(100);// delay to allow encoder to settle
+        } catch (InterruptedException ignored){}
+        modulatorEnablePin.setState(PinState.HIGH);
+        try
+        {
+            TimeUnit.SECONDS.sleep(15);// delay to allow socket to action command longer for training
+        } catch (InterruptedException ignored){}
+        modulatorEnablePin.setState(PinState.LOW);
+
+        this.pinD3.setState(PinState.LOW); //disable modulator
+    }
  }
