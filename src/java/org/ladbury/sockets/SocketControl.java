@@ -26,15 +26,15 @@ public class SocketControl
         SOCKET3(PinState.HIGH,PinState.LOW,PinState.HIGH),
         SOCKET4(PinState.HIGH,PinState.LOW,PinState.LOW);
 
-        final PinState pinK1;
-        final PinState pinK2;
-        final PinState pinK3;
+        final PinState pinD2;
+        final PinState pinD1;
+        final PinState pinD0;
 
-        SocketCode(PinState pinK1,PinState pinK2,PinState pinK3)
+        SocketCode(PinState pinD2,PinState pinD1,PinState pinD0)
         {
-            this.pinK1 = pinK1;
-            this.pinK2 = pinK2;
-            this.pinK3 = pinK3;
+            this.pinD2 = pinD2;
+            this.pinD1 = pinD1;
+            this.pinD0 = pinD0;
         }
     }
 
@@ -52,10 +52,10 @@ public class SocketControl
     }
 
 
-    private final GpioPinDigitalOutput pinK0; //All = LOW, individual Socket = High
-    private final GpioPinDigitalOutput pinK1; //All = LOW, individual Socket = High
-    private final GpioPinDigitalOutput pinK2; // K2-K3: HIGH HIGH = Socket1, HIGH LOW = socket2
-    private final GpioPinDigitalOutput pinK3; // K2-K3: LOW HIGH = Socket3, LOW LOW = socket4
+    private final GpioPinDigitalOutput pinD0; //All = LOW, individual Socket = High
+    private final GpioPinDigitalOutput pinD1; //All = LOW, individual Socket = High
+    private final GpioPinDigitalOutput pinD2; // K2-K3: HIGH HIGH = Socket1, HIGH LOW = socket2
+    private final GpioPinDigitalOutput pinD3; // K2-K3: LOW HIGH = Socket3, LOW LOW = socket4
     @SuppressWarnings("FieldCanBeLocal")
     private final GpioPinDigitalOutput modulationSelectPin;
     private final GpioPinDigitalOutput modulatorEnablePin;
@@ -78,30 +78,30 @@ public class SocketControl
         // GPIO pinout uses the Pi4J/WiringPi GPIO numbering scheme.
 
         //Select the signal used to enable/disable the modulator
-        //was 22 now 06
+        //was physical 22 now Pi4j GPIO 06
         this.modulatorEnablePin = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_06, "CE", PinState.LOW);
         this.modulatorEnablePin.setShutdownOptions(true, PinState.LOW);
 
         // Select the GPIO pin used to select Modulation ASK/FSK
         // Set the modulator to ASK for On Off Keying by setting MODSEL pin low
-        //was 18 now 05
-        this.modulationSelectPin = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_05, "ASK/FSK", PinState.LOW);
+        //was physical 18 now Pi4j GPIO  05
+        this.modulationSelectPin = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_05, "MODSEL", PinState.LOW);
         this.modulationSelectPin.setShutdownOptions(true, PinState.LOW);
 
         // Select the GPIO pins used for the encoder K0-K3 data inputs
         // and initialise K0-K3 inputs of the encoder to 0000
-        //was 11 now 00
-        this.pinK0 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_00, "K0", PinState.LOW);
-        //was 15 now 03
-        this.pinK1 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_03, "K1", PinState.LOW);
-        //was 16 now 04
-        this.pinK2 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_04, "K2", PinState.LOW);
-        //was 13 now 02
-        this.pinK3 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_02, "K3", PinState.LOW);
-        this.pinK0.setShutdownOptions(true, PinState.LOW);
-        this.pinK1.setShutdownOptions(true, PinState.LOW);
-        this.pinK2.setShutdownOptions(true, PinState.LOW);
-        this.pinK3.setShutdownOptions(true, PinState.LOW);
+        //was physical 11 now Pi4j GPIO 00
+        this.pinD0 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_00, "Encoder signal D0", PinState.LOW);
+        //was physical 15 now Pi4j GPIO 03
+        this.pinD1 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_03, "Encoder signal D1", PinState.LOW);
+        //was physical 16 now Pi4j GPIO 04
+        this.pinD2 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_04, "Encoder signal D2", PinState.LOW);
+        //was physical 13 now Pi4j GPIO 02
+        this.pinD3 = gpio.provisionDigitalOutputPin(RaspiPin.GPIO_02, "Encoder signal D3", PinState.LOW);
+        this.pinD0.setShutdownOptions(true, PinState.LOW);
+        this.pinD1.setShutdownOptions(true, PinState.LOW);
+        this.pinD2.setShutdownOptions(true, PinState.LOW);
+        this.pinD3.setShutdownOptions(true, PinState.LOW);
         System.out.println("Socket Control initialised");
     }
 
@@ -115,14 +115,14 @@ public class SocketControl
         SocketCode socket = socketMap.get(s);
         SocketState state = SocketState.OFF;
         if (on) state = SocketState.ON;
-        this.pinK0.setState(state.state);
-        this.pinK1.setState(socket.pinK1);
-        this.pinK2.setState(socket.pinK2);
-        this.pinK3.setState(socket.pinK3);
+        this.pinD0.setState(state.state);
+        this.pinD1.setState(socket.pinD2);
+        this.pinD2.setState(socket.pinD1);
+        this.pinD3.setState(socket.pinD0);
         if (socket == SocketCode.ALL)
         {
-            this.pinK1.setState(PinState.LOW);
-            if(state == SocketState.ON) this.pinK0.setState(PinState.LOW); else this.pinK0.setState(PinState.HIGH);
+            this.pinD1.setState(PinState.LOW);
+            if(state == SocketState.ON) this.pinD0.setState(PinState.LOW); else this.pinD0.setState(PinState.HIGH);
         }
         try
         {
