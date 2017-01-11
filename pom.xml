@@ -21,7 +21,7 @@
         <pi.deployDirectory>/home/pi/artifacts</pi.deployDirectory>
         <pi.pi4j.Directory>/opt/pi4j/lib</pi.pi4j.Directory>
         <pi.pi4j.Version>1.2-SNAPSHOT</pi.pi4j.Version>
-        <pi.main.class>org.ladbury.Main</pi.main.class>
+        <pi.main.class>org.ladbury.sockets.Main</pi.main.class>
     </properties>
 
     <repositories>
@@ -72,13 +72,14 @@
                 <configuration>
                     <archive>
                         <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                             <addClasspath>true</addClasspath>
                             <!--<classpathPrefix>${pi.pi4j.Directory}/</classpathPrefix>-->
                             <mainClass>${pi.main.class}</mainClass>
                         </manifest>
                         <manifestEntries>
                             <!-- Add the pi4j in runtime. -->
-                            <Class-Path>.:${pi.pi4j.Directory}/pi4j-core.jar</Class-Path>
+                            <Class-Path>${pi.pi4j.Directory}/pi4j-core.jar</Class-Path>
                         </manifestEntries>
                     </archive>
                 </configuration>
@@ -115,7 +116,7 @@
                                 <sshexec host="${pi.host}" port="${pi.port}" username="${pi.user}"
                                          password="${pi.password}" trust="true" failonerror="false"
                                          verbose="false"
-                                         command="sudo java -jar ${pi.deployDirectory}/${project.build.finalName}.jar" />
+                                         command="sudo java -jar ${pi.deployDirectory}/${project.build.finalName}.jar -d" />
                             </target>
 
                         </configuration>

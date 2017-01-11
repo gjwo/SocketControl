@@ -1,4 +1,4 @@
-package org.ladbury;
+package org.ladbury.sockets;
 
 import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.JCommander;

@@ -1,4 +1,4 @@
-package org.ladbury;
+package org.ladbury.sockets;
 
 import com.pi4j.io.gpio.*;
 
