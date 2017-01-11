@@ -3,6 +3,7 @@ package org.ladbury;
 import com.pi4j.io.gpio.*;
 
 import java.util.concurrent.TimeUnit;
+import java.util.HashMap;
 
 /**
  * Created by GJWood on 09/01/2017.
@@ -50,13 +51,15 @@ public class SocketControl
         }
     }
 
-    private final GpioPinDigitalOutput pinK0;
-    private final GpioPinDigitalOutput pinK1;
-    private final GpioPinDigitalOutput pinK2;
-    private final GpioPinDigitalOutput pinK3;
+
+    private final GpioPinDigitalOutput pinK0; //All = LOW, individual Socket = High
+    private final GpioPinDigitalOutput pinK1; //All = LOW, individual Socket = High
+    private final GpioPinDigitalOutput pinK2; // K2-K3: HIGH HIGH = Socket1, HIGH LOW = socket2
+    private final GpioPinDigitalOutput pinK3; // K2-K3: LOW HIGH = Socket3, LOW LOW = socket4
     @SuppressWarnings("FieldCanBeLocal")
     private final GpioPinDigitalOutput modulationSelectPin;
     private final GpioPinDigitalOutput modulatorEnablePin;
+    private final HashMap <Integer,SocketCode>  socketMap;
 
     /**
      * SocketControl    -   Constructor, sets up the GPIO pins required to control the sockets
@@ -64,6 +67,12 @@ public class SocketControl
     public SocketControl()
     {
         final GpioController gpio = GpioFactory.getInstance();
+        socketMap = new HashMap<>();
+        socketMap.put(0,SocketCode.ALL);
+        socketMap.put(1,SocketCode.SOCKET1);
+        socketMap.put(2,SocketCode.SOCKET2);
+        socketMap.put(3,SocketCode.SOCKET3);
+        socketMap.put(4,SocketCode.SOCKET4);
 
         // the pins numbering scheme is different using pi4j
         // GPIO pinout uses the Pi4J/WiringPi GPIO numbering scheme.
@@ -95,42 +104,74 @@ public class SocketControl
         this.pinK3.setShutdownOptions(true, PinState.LOW);
         System.out.println("Socket Control initialised");
     }
+
     /**
      * switchSocket     -   Switches the specified socket to the required state
-     * @param socket    -   Socket 1-4 or ALL
-     * @param state     -   ON or OFF
+     * @param s         -   Socket 1-4 or 0 for ALL
+     * @param on         -  true for on false for off
      */
-    public void switchSocket(SocketCode socket, SocketState state)
+    public void switchSocket(int s, boolean on)
     {
+        SocketCode socket = socketMap.get(s);
+        SocketState state = SocketState.OFF;
+        if (on) state = SocketState.ON;
         this.pinK0.setState(state.state);
         this.pinK1.setState(socket.pinK1);
         this.pinK2.setState(socket.pinK2);
         this.pinK3.setState(socket.pinK3);
-
+        if (socket == SocketCode.ALL)
+        {
+            this.pinK1.setState(PinState.LOW);
+            if(state == SocketState.ON) this.pinK0.setState(PinState.LOW); else this.pinK0.setState(PinState.HIGH);
+        }
         try
         {
             TimeUnit.MILLISECONDS.sleep(100);// delay to allow encoder to settle
-        } catch (InterruptedException ignored)
-        {
-        }
+        } catch (InterruptedException ignored){}
         modulatorEnablePin.setState(PinState.HIGH);
         try
         {
             TimeUnit.MILLISECONDS.sleep(250);// delay to socket to action command
-        } catch (InterruptedException ignored)
-        {
-        }
+        } catch (InterruptedException ignored){}
         modulatorEnablePin.setState(PinState.LOW);
         System.out.println(socket.name()+" switched "+ state.name());
     }
 
-    public void blinkSocket(SocketCode socket, int seconds)
+    /**
+     * blinkSocket      - blinks a socket on for the required time
+     * @param socket    - socket number (1-4) or 0 for all
+     * @param seconds   - on time in seconds
+     */
+    public void blinkSocket(int socket, int seconds)
     {
-        switchSocket(socket, SocketControl.SocketState.ON);
+        switchSocket(socket, true);
         try
         {
             TimeUnit.SECONDS.sleep(seconds);
         } catch (InterruptedException ignored){}
-        switchSocket(socket, SocketControl.SocketState.OFF);
+        switchSocket(socket, false);
+        try
+        {
+            TimeUnit.SECONDS.sleep(seconds);
+        } catch (InterruptedException ignored){}
     }
+
+    /**
+     * programSocket    -   sends signals to a socket to allow it to learn it's code
+     * @param socket    -   socket number 1-4 only
+     */
+    public void programSocket(int socket)
+    {
+        System.out.println("To clear the socket programming, press the green button");
+        System.out.println("for 5 seconds or more until the red light flashes slowly");
+        System.out.println("The socket is now in its learning mode and listening for");
+        System.out.println("a control code to be sent to switch the socket on and off (3 attempts)");
+        try
+        {
+            TimeUnit.SECONDS.sleep(7); //give time for the socket to be put in learning mode
+        } catch (InterruptedException ignored){}
+        blinkSocket(socket,2);
+        blinkSocket(socket,2);
+        blinkSocket(socket,2);
+     }
  }
