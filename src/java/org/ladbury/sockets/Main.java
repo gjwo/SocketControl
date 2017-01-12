@@ -20,7 +20,7 @@ public class Main implements Runnable,IParameterValidator
     @Parameter(names = "-on", description = "if present the socket is turned on, else it is turned off")
     private
     boolean switchOn = false;
-    @Parameter(names = {"--help", "-h"}, help = true)
+    @Parameter(names = {"--help", "-h",},description = "Display help information", help = true)
     private boolean help=false;
     private JCommander jc;
     private int numberArgs =0;
