@@ -11,7 +11,7 @@ public class Main implements Runnable,IParameterValidator
     @Parameter(names = {"--demo", "-d"},description = "Demonstration")
     private
     boolean demo = false;
-    @Parameter(names = {"--switch","-s"},description = "Switch a socket (1-4), 0 = all",arity = 1)
+    @Parameter(names = {"--switch","-s"},description = "Switch a socket (1-4), 0 = all add -on if required",arity = 1)
     private
     int switchNumber = -1;
     @Parameter(names = {"--train","-t"}, description = "Train socket (1-4)", arity = 1)
