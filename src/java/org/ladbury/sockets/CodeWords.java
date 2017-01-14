@@ -4,11 +4,22 @@ class CodeWord
 {
     TriState word[];
     boolean valid;
+    int triBitCount;
 
-    CodeWord() {word = new TriState[13]; valid=false; }
+    CodeWord() 
+    {
+        word = new TriState[12];
+        valid=false;
+        triBitCount=0; 
+    }
     TriState getTriStateBit(int i){return word[i];}
     void setTriStateBit(int i,TriState t){word[i] = t;}
     void setValid(boolean v){valid = v;}
+    void addTriStateBit(TriState t)
+    {
+        word[this.triBitCount] = t;
+        triBitCount++;
+    }
     boolean isValid(){return valid;}
 }
 
@@ -36,7 +47,7 @@ public class CodeWords
                 case '0':
                     // bit pattern 00
                     break;
-                case 'F':
+                case TriState.floating:
                     // bit pattern 01
                     code |= 1L;
                     break;
@@ -47,28 +58,41 @@ public class CodeWords
             }
             length += 2;
         }
-        //zzzz.send(code, length);
+        ClassName.send(code, length);
     }
 
 
     /**
-     * Returns a char[13], representing the code word to be send.
+     * Encoding for type A switches with two rotary/sliding switches.
      *
+     * The code word is a tristate word and with following bit pattern:
+     *
+     * +-----------------------------+-----------------------------+----------+------------+
+     * | 5 bits address              | 5 bits address              | 1bit(inv)| 1 bit      |
+     * | switch group                | switch number               | on / off | on / off   |
+     * | 1=0FFF 2=F0FF 3=FF0F 4=FFF0 | 1=0FFF 2=F0FF 3=FF0F 4=FFF0 |on=0 off=F| on=F off=0 |
+     * +-----------------------------+-----------------------------+----------+------------+
+     *
+     * @param sGroup    Number of the switch group (binary string )
+     * @param sDevice   Number of the switch itself (binary string)
+     * @param bStatus   Whether to switch on (true) or off (false)
+     *
+     * @return char[13], representing a tristate code word of length 12
      */
     static CodeWord getCodeWordA(final char[] sGroup, final char[] sDevice, boolean bStatus)
     {
-        /*static*/ CodeWord cw = new CodeWord();
-        int index = 0;
+        CodeWord cw = new CodeWord();
+        cw.setValid(false);
 
         for (int i = 0; i < 5; i++) {
-            cw.setTriStateBit(index++,  (sGroup[i] == '0') ? TriState.floating : TriState.zero);
+            cw.addTriStateBit((sGroup[i] == '0') ? TriState.floating : TriState.zero);
         }
         for (int i = 0; i < 5; i++) {
-            cw.setTriStateBit(index++,(sDevice[i] == '0') ? TriState.floating : TriState.zero);
+            cw.addTriStateBit((sDevice[i] == '0') ? TriState.floating : TriState.zero);
         }
-        cw.setTriStateBit(index++,bStatus ? TriState.zero : TriState.floating);
-        cw.setTriStateBit(index++,bStatus ? TriState.floating : TriState.zero);
-        //cw[index] = '\0';
+        cw.addTriStateBit(bStatus ? TriState.zero : TriState.floating);
+        cw.addTriStateBit(bStatus ? TriState.floating : TriState.zero);
+        cw.setValid(true);
         return cw;
     }
 
@@ -89,66 +113,72 @@ public class CodeWords
      *
      * @return char[13], representing a tristate code word of length 12
      */
-    static /* char* */ byte[] getCodeWordB(int nAddressCode, int nChannelCode, boolean bStatus)
+    static CodeWord  getCodeWordB(int nAddressCode, int nChannelCode, boolean bStatus)
     {
-        /*static*/ char[] sReturn = new char[13];
-        int nReturnPos = 0;
+        CodeWord cw = new CodeWord();
+        cw.setValid(false);
 
-        if (nAddressCode < 1 || nAddressCode > 4 || nChannelCode < 1 || nChannelCode > 4) {
-            return 0;
+        if (nAddressCode < 1 || nAddressCode > 4 || nChannelCode < 1 || nChannelCode > 4) 
+        {
+            return cw;
         }
 
         for (int i = 1; i <= 4; i++) {
-            sReturn[nReturnPos++] = (nAddressCode == i) ? '0' : 'F';
+            cw.addTriStateBit((nAddressCode == i) ? TriState.zero : TriState.floating);
         }
 
         for (int i = 1; i <= 4; i++) {
-            sReturn[nReturnPos++] = (nChannelCode == i) ? '0' : 'F';
+            cw.addTriStateBit((nChannelCode == i) ? TriState.zero : TriState.floating);
         }
 
-        sReturn[nReturnPos++] = 'F';
-        sReturn[nReturnPos++] = 'F';
-        sReturn[nReturnPos++] = 'F';
+        cw.addTriStateBit(TriState.floating);
+        cw.addTriStateBit(TriState.floating);
+        cw.addTriStateBit(TriState.floating);
 
-        sReturn[nReturnPos++] = bStatus ? 'F' : '0';
+        cw.addTriStateBit(bStatus ? TriState.floating : TriState.zero);
 
-        sReturn[nReturnPos] = '\0';
-        return sReturn;
+        cw.setValid(true);
+        return cw;
     }
 
     /**
      * Like getCodeWord (Type C = Intertechno)
+     * @param sFamily
+     * @param nGroup
+     * @param nDevice
+     * @param bStatus
+     * @return
      */
-    static /* char* */ byte[] getCodeWordC(char sFamily, int nGroup, int nDevice, boolean bStatus)
+    static CodeWord getCodeWordC(char sFamily, int nGroup, int nDevice, boolean bStatus)
     {
-        static char sReturn[13];
-        int nReturnPos = 0;
-
+        CodeWord cw = new CodeWord();
+        cw.setValid(false);
+        //////////////////CHECK//////////////
         int nFamily = (int)sFamily - 'a';
         if ( nFamily < 0 || nFamily > 15 || nGroup < 1 || nGroup > 4 || nDevice < 1 || nDevice > 4) {
             return null ;//0
         }
 
         // encode the family into four bits
-        sReturn[nReturnPos++] = (nFamily & 1) ? 'F' : '0';
-        sReturn[nReturnPos++] = (nFamily & 2) ? 'F' : '0';
-        sReturn[nReturnPos++] = (nFamily & 4) ? 'F' : '0';
-        sReturn[nReturnPos++] = (nFamily & 8) ? 'F' : '0';
+        cw.addTriStateBit(((nFamily & 1 )>0) ? TriState.floating : TriState.zero);
+        cw.addTriStateBit(((nFamily & 2))>0 ? TriState.floating : TriState.zero);
+        cw.addTriStateBit(((nFamily & 4))>0 ? TriState.floating : TriState.zero);
+        cw.addTriStateBit(((nFamily & 8))>0 ? TriState.floating : TriState.zero);
 
         // encode the device and group
-        sReturn[nReturnPos++] = ((nDevice-1) & 1) ? 'F' : '0';
-        sReturn[nReturnPos++] = ((nDevice-1) & 2) ? 'F' : '0';
-        sReturn[nReturnPos++] = ((nGroup-1) & 1) ? 'F' : '0';
-        sReturn[nReturnPos++] = ((nGroup-1) & 2) ? 'F' : '0';
+        cw.addTriStateBit((((nDevice-1) & 1))>0 ? TriState.floating : TriState.zero);
+        cw.addTriStateBit((((nDevice-1) & 2))>0 ? TriState.floating : TriState.zero);
+        cw.addTriStateBit((((nGroup-1) & 1))>0 ? TriState.floating : TriState.zero);
+        cw.addTriStateBit((((nGroup-1) & 2))>0 ? TriState.floating : TriState.zero);
 
         // encode the status code
-        sReturn[nReturnPos++] = '0';
-        sReturn[nReturnPos++] = 'F';
-        sReturn[nReturnPos++] = 'F';
-        sReturn[nReturnPos++] = bStatus ? 'F' : '0';
+        cw.addTriStateBit(TriState.zero);
+        cw.addTriStateBit(TriState.floating);
+        cw.addTriStateBit(TriState.floating);
+        cw.addTriStateBit(bStatus ? TriState.floating : TriState.zero);
 
-        sReturn[nReturnPos] = '\0';
-        return sReturn;
+        cw.setValid(true);
+        return cw;
     }
 
     /**
@@ -170,33 +200,33 @@ public class CodeWords
      *
      * @return char[13], representing a tristate code word of length 12
      */
-    static /*char* */ byte[] getCodeWordD(char sGroup, int nDevice, boolean bStatus)
+    static CodeWord getCodeWordD(char sGroup, int nDevice, boolean bStatus)
     {
-        static char sReturn[13];
-        int nReturnPos = 0;
+        CodeWord cw = new CodeWord();
+        cw.setValid(false);
 
         // sGroup must be one of the letters in "abcdABCD"
         int nGroup = (sGroup >= 'a') ? (int)sGroup - 'a' : (int)sGroup - 'A';
         if ( nGroup < 0 || nGroup > 3 || nDevice < 1 || nDevice > 3) {
-            return 0;
+            return cw;
         }
 
         for (int i = 0; i < 4; i++) {
-            sReturn[nReturnPos++] = (nGroup == i) ? '1' : 'F';
+            cw.addTriStateBit((nGroup == i) ? TriState.one : TriState.floating);
         }
 
         for (int i = 1; i <= 3; i++) {
-            sReturn[nReturnPos++] = (nDevice == i) ? '1' : 'F';
+            cw.addTriStateBit((nDevice == i) ? TriState.one : TriState.floating);
         }
 
-        sReturn[nReturnPos++] = '0';
-        sReturn[nReturnPos++] = '0';
-        sReturn[nReturnPos++] = '0';
+        cw.addTriStateBit(TriState.zero);
+        cw.addTriStateBit(TriState.zero);
+        cw.addTriStateBit(TriState.zero);
 
-        sReturn[nReturnPos++] = bStatus ? '1' : '0';
-        sReturn[nReturnPos++] = bStatus ? '0' : '1';
+        cw.addTriStateBit(bStatus ? TriState.one : TriState.zero);
+        cw.addTriStateBit(bStatus ? TriState.zero : TriState.one);
 
-        sReturn[nReturnPos] = '\0';
-        return sReturn;
+        cw.setValid(true);
+        return cw;
     }
 }
