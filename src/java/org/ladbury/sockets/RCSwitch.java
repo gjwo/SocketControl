@@ -91,7 +91,7 @@ package org.ladbury.sockets;
         }
     }
 
-    enum TriState {zero,one,floating}
+
 
 class RCSwitch
 {
@@ -209,303 +209,6 @@ class RCSwitch
     void disableTransmit()
     {
         this.nTransmitterPin = -1;
-    }
-
-    /**
-     * Switch a remote switch on (Type D REV)
-     *
-     * @param sGroup        Code of the switch group (A,B,C,D)
-     * @param nDevice       Number of the switch itself (1..3)
-     */
-    void switchOn(char sGroup, int nDevice)
-    {
-        this.sendTriState( this.getCodeWordD(sGroup, nDevice, true) );
-    }
-
-    /**
-     * Switch a remote switch off (Type D REV)
-     *
-     * @param sGroup        Code of the switch group (A,B,C,D)
-     * @param nDevice       Number of the switch itself (1..3)
-     */
-    void switchOff(char sGroup, int nDevice)
-    {
-        this.sendTriState( this.getCodeWordD(sGroup, nDevice, false) );
-    }
-
-    /**
-     * Switch a remote switch on (Type C Intertechno)
-     *
-     * @param sFamily  Familycode (a..f)
-     * @param nGroup   Number of group (1..4)
-     * @param nDevice  Number of device (1..4)
-     */
-    void switchOn(char sFamily, int nGroup, int nDevice)
-    {
-        this.sendTriState( this.getCodeWordC(sFamily, nGroup, nDevice, true) );
-    }
-
-    /**
-     * Switch a remote switch off (Type C Intertechno)
-     *
-     * @param sFamily  Familycode (a..f)
-     * @param nGroup   Number of group (1..4)
-     * @param nDevice  Number of device (1..4)
-     */
-    void switchOff(char sFamily, int nGroup, int nDevice)
-    {
-        this.sendTriState( this.getCodeWordC(sFamily, nGroup, nDevice, false) );
-    }
-
-    /**
-     * Switch a remote switch on (Type B with two rotary/sliding switches)
-     *
-     * @param nAddressCode  Number of the switch group (1..4)
-     * @param nChannelCode  Number of the switch itself (1..4)
-     */
-    void switchOn(int nAddressCode, int nChannelCode)
-    {
-        this.sendTriState( this.getCodeWordB(nAddressCode, nChannelCode, true) );
-    }
-
-    /**
-     * Switch a remote switch off (Type B with two rotary/sliding switches)
-     *
-     * @param nAddressCode  Number of the switch group (1..4)
-     * @param nChannelCode  Number of the switch itself (1..4)
-     */
-    void switchOff(int nAddressCode, int nChannelCode)
-    {
-        this.sendTriState( this.getCodeWordB(nAddressCode, nChannelCode, false) );
-    }
-
-    /**
-     * Deprecated, use switchOn(final char* sGroup, final char* sDevice) instead!
-     * Switch a remote switch on (Type A with 10 pole DIP switches)
-     *
-     * @param sGroup        Code of the switch group (refers to DIP switches 1..5 where "1" = on and "0" = off, if all DIP switches are on it's "11111")
-     * @param nChannel      Number of the switch itself (1..5)
-     */
-    void switchOn(final /*char* */ byte[]sGroup, int nChannel)
-    {
-        final /*char* */ String[] code = { "00000", "10000", "01000", "00100", "00010", "00001" };
-        this.switchOn(sGroup, code[nChannel]);
-    }
-
-    /**
-     * Deprecated, use switchOff(final char* sGroup, final char* sDevice) instead!
-     * Switch a remote switch off (Type A with 10 pole DIP switches)
-     *
-     * @param sGroup        Code of the switch group (refers to DIP switches 1..5 where "1" = on and "0" = off, if all DIP switches are on it's "11111")
-     * @param nChannel      Number of the switch itself (1..5)
-     */
-    void switchOff(final /*char* */ byte[]sGroup, int nChannel)
-    {
-        final /*char* */ String[]code = { "00000", "10000", "01000", "00100", "00010", "00001" };
-        this.switchOff(sGroup, code[nChannel]);
-    }
-
-    /**
-     * Switch a remote switch on (Type A with 10 pole DIP switches)
-     *
-     * @param sGroup        Code of the switch group (refers to DIP switches 1..5 where "1" = on and "0" = off, if all DIP switches are on it's "11111")
-     * @param sDevice       Code of the switch device (refers to DIP switches 6..10 (A..E) where "1" = on and "0" = off, if all DIP switches are on it's "11111")
-     */
-    void switchOn(final /*char* */ byte[] sGroup, final /*char* */ byte[] sDevice)
-    {
-        this.sendTriState( this.getCodeWordA(sGroup, sDevice, true) );
-    }
-
-    /**
-     * Switch a remote switch off (Type A with 10 pole DIP switches)
-     *
-     * @param sGroup        Code of the switch group (refers to DIP switches 1..5 where "1" = on and "0" = off, if all DIP switches are on it's "11111")
-     * @param sDevice       Code of the switch device (refers to DIP switches 6..10 (A..E) where "1" = on and "0" = off, if all DIP switches are on it's "11111")
-     */
-    void switchOff(final /*char* */ byte[] sGroup, final /*char* */ byte[] sDevice)
-    {
-        this.sendTriState( this.getCodeWordA(sGroup, sDevice, false) );
-    }
-
-
-/**
- * Returns a char[13], representing the code word to be send.
- *
- */
-    /*char* */ byte[] getCodeWordA(final /*char* */ byte[] sGroup, final /*char* */ byte[] sDevice, boolean bStatus)
-    {
-        /*static*/ char[] sReturn = new char[13];
-        int nReturnPos = 0;
-
-        for (int i = 0; i < 5; i++) {
-            sReturn[nReturnPos++] = (sGroup[i] == '0') ? 'F' : '0';
-        }
-
-        for (int i = 0; i < 5; i++) {
-            sReturn[nReturnPos++] = (sDevice[i] == '0') ? 'F' : '0';
-        }
-
-        sReturn[nReturnPos++] = bStatus ? '0' : 'F';
-        sReturn[nReturnPos++] = bStatus ? 'F' : '0';
-
-        sReturn[nReturnPos] = '\0';
-    return sReturn;
-    }
-
-/**
- * Encoding for type B switches with two rotary/sliding switches.
- *
- * The code word is a tristate word and with following bit pattern:
- *
- * +-----------------------------+-----------------------------+----------+------------+
- * | 4 bits address              | 4 bits address              | 3 bits   | 1 bit      |
- * | switch group                | switch number               | not used | on / off   |
- * | 1=0FFF 2=F0FF 3=FF0F 4=FFF0 | 1=0FFF 2=F0FF 3=FF0F 4=FFF0 | FFF      | on=F off=0 |
- * +-----------------------------+-----------------------------+----------+------------+
- *
- * @param nAddressCode  Number of the switch group (1..4)
- * @param nChannelCode  Number of the switch itself (1..4)
- * @param bStatus       Whether to switch on (true) or off (false)
- *
- * @return char[13], representing a tristate code word of length 12
- */
-    /* char* */ byte[] getCodeWordB(int nAddressCode, int nChannelCode, boolean bStatus)
-    {
-        /*static*/ char[] sReturn = new char[13];
-        int nReturnPos = 0;
-
-        if (nAddressCode < 1 || nAddressCode > 4 || nChannelCode < 1 || nChannelCode > 4) {
-            return 0;
-        }
-
-        for (int i = 1; i <= 4; i++) {
-            sReturn[nReturnPos++] = (nAddressCode == i) ? '0' : 'F';
-        }
-
-        for (int i = 1; i <= 4; i++) {
-            sReturn[nReturnPos++] = (nChannelCode == i) ? '0' : 'F';
-        }
-
-        sReturn[nReturnPos++] = 'F';
-        sReturn[nReturnPos++] = 'F';
-        sReturn[nReturnPos++] = 'F';
-
-        sReturn[nReturnPos++] = bStatus ? 'F' : '0';
-
-        sReturn[nReturnPos] = '\0';
-        return sReturn;
-    }
-
-/**
- * Like getCodeWord (Type C = Intertechno)
- */
-    /* char* */ byte[] getCodeWordC(char sFamily, int nGroup, int nDevice, boolean bStatus)
-    {
-        static char sReturn[13];
-        int nReturnPos = 0;
-
-        int nFamily = (int)sFamily - 'a';
-        if ( nFamily < 0 || nFamily > 15 || nGroup < 1 || nGroup > 4 || nDevice < 1 || nDevice > 4) {
-            return 0;
-        }
-
-        // encode the family into four bits
-        sReturn[nReturnPos++] = (nFamily & 1) ? 'F' : '0';
-        sReturn[nReturnPos++] = (nFamily & 2) ? 'F' : '0';
-        sReturn[nReturnPos++] = (nFamily & 4) ? 'F' : '0';
-        sReturn[nReturnPos++] = (nFamily & 8) ? 'F' : '0';
-
-        // encode the device and group
-        sReturn[nReturnPos++] = ((nDevice-1) & 1) ? 'F' : '0';
-        sReturn[nReturnPos++] = ((nDevice-1) & 2) ? 'F' : '0';
-        sReturn[nReturnPos++] = ((nGroup-1) & 1) ? 'F' : '0';
-        sReturn[nReturnPos++] = ((nGroup-1) & 2) ? 'F' : '0';
-
-        // encode the status code
-        sReturn[nReturnPos++] = '0';
-        sReturn[nReturnPos++] = 'F';
-        sReturn[nReturnPos++] = 'F';
-        sReturn[nReturnPos++] = bStatus ? 'F' : '0';
-
-        sReturn[nReturnPos] = '\0';
-        return sReturn;
-}
-
-/**
- * Encoding for the REV Switch Type
- *
- * The code word is a tristate word and with following bit pattern:
- *
- * +-----------------------------+-------------------+----------+--------------+
- * | 4 bits address              | 3 bits address    | 3 bits   | 2 bits       |
- * | switch group                | device number     | not used | on / off     |
- * | A=1FFF B=F1FF C=FF1F D=FFF1 | 1=0FF 2=F0F 3=FF0 | 000      | on=10 off=01 |
- * +-----------------------------+-------------------+----------+--------------+
- *
- * Source: http://www.the-intruder.net/funksteckdosen-von-rev-uber-arduino-ansteuern/
- *
- * @param sGroup        Name of the switch group (A..D, resp. a..d) 
- * @param nDevice       Number of the switch itself (1..3)
- * @param bStatus       Whether to switch on (true) or off (false)
- *
- * @return char[13], representing a tristate code word of length 12
- */
-    /*char* */ byte[] getCodeWordD(char sGroup, int nDevice, boolean bStatus)
-    {
-        static char sReturn[13];
-        int nReturnPos = 0;
-
-        // sGroup must be one of the letters in "abcdABCD"
-        int nGroup = (sGroup >= 'a') ? (int)sGroup - 'a' : (int)sGroup - 'A';
-        if ( nGroup < 0 || nGroup > 3 || nDevice < 1 || nDevice > 3) {
-            return 0;
-        }
-
-        for (int i = 0; i < 4; i++) {
-            sReturn[nReturnPos++] = (nGroup == i) ? '1' : 'F';
-        }
-
-        for (int i = 1; i <= 3; i++) {
-            sReturn[nReturnPos++] = (nDevice == i) ? '1' : 'F';
-        }
-
-        sReturn[nReturnPos++] = '0';
-        sReturn[nReturnPos++] = '0';
-        sReturn[nReturnPos++] = '0';
-
-        sReturn[nReturnPos++] = bStatus ? '1' : '0';
-        sReturn[nReturnPos++] = bStatus ? '0' : '1';
-
-        sReturn[nReturnPos] = '\0';
-        return sReturn;
-    }
-
-    /**
-     * @param sCodeWord   a tristate code word consisting of the letter 0, 1, F
-     */
-    void sendTriState(final byte[] sCodeWord)
-    {
-        // turn the tristate code word into the corresponding bit pattern, then send it
-        /*unsigned*/ long code = 0;
-        /*unsigned*/ int length = 0;
-        for (final char* p = sCodeWord; *p; p++) {
-            code <<= 2L;
-            switch (*p) {
-                case '0':
-                    // bit pattern 00
-                    break;
-                case 'F':
-                    // bit pattern 01
-                    code |= 1L;
-                    break;
-                case '1':
-                    // bit pattern 11
-                    code |= 3L;
-                    break;
-            }
-            length += 2;
-        }
-        this.send(code, length);
     }
 
     /**
@@ -714,47 +417,48 @@ class RCSwitch
         return false;
     }
 
-    void /*RECEIVE_ATTR*/ handleInterrupt() {
+    void /*RECEIVE_ATTR*/ handleInterrupt()
+    {
 
-    /*static*/ /*unsigned*/ int changeCount = 0;
-    /*static*/ /*unsigned*/ long lastTime = 0;
-    /*static*/ /*unsigned*/ int repeatCount = 0;
+        /*static*/ /*unsigned*/ int changeCount = 0;
+        /*static*/ /*unsigned*/ long lastTime = 0;
+        /*static*/ /*unsigned*/ int repeatCount = 0;
 
-  final long time = System.nanoTime()/1000; //micros();
-  final /*unsigned*/ int duration = (int)(time - lastTime);
+      final long time = System.nanoTime()/1000; //micros();
+      final /*unsigned*/ int duration = (int)(time - lastTime);
 
-    if (duration > nSeparationLimit) {
-        // A long stretch without signal level change occurred. This could
-        // be the gap between two transmission.
-        if (diff(duration, timings[0]) < 200) {
-            // This long signal is close in length to the long signal which
-            // started the previously recorded timings; this suggests that
-            // it may indeed by a a gap between two transmissions (we assume
-            // here that a sender will send the signal multiple times,
-            // with roughly the same gap between them).
-            repeatCount++;
-            if (repeatCount == 2) {
-                for(/*unsigned*/ int i = 1; i <= numProto; i++) {
-                    if (receiveProtocol(i, changeCount)) {
-                        // receive succeeded for protocol i
-                        break;
+        if (duration > nSeparationLimit) {
+            // A long stretch without signal level change occurred. This could
+            // be the gap between two transmission.
+            if (diff(duration, timings[0]) < 200) {
+                // This long signal is close in length to the long signal which
+                // started the previously recorded timings; this suggests that
+                // it may indeed by a a gap between two transmissions (we assume
+                // here that a sender will send the signal multiple times,
+                // with roughly the same gap between them).
+                repeatCount++;
+                if (repeatCount == 2) {
+                    for(/*unsigned*/ int i = 1; i <= numProto; i++) {
+                        if (receiveProtocol(i, changeCount)) {
+                            // receive succeeded for protocol i
+                            break;
+                        }
                     }
+                    repeatCount = 0;
                 }
-                repeatCount = 0;
             }
+            changeCount = 0;
         }
-        changeCount = 0;
-    }
 
-    // detect overflow
-    if (changeCount >= RCSWITCH_MAX_CHANGES) {
-        changeCount = 0;
-        repeatCount = 0;
-    }
+        // detect overflow
+        if (changeCount >= RCSWITCH_MAX_CHANGES) {
+            changeCount = 0;
+            repeatCount = 0;
+        }
 
-    timings[changeCount++] = duration;
-    lastTime = time;
-}
+        timings[changeCount++] = duration;
+        lastTime = time;
+    }
 //#endif
 }
 /*
