@@ -66,21 +66,23 @@ package org.ladbury.sockets;
 
     enum Protocol
     {      
-        protocol1 (350,1,31,1,3,3,1,false ),
-        protocol2 (650,1,10,1,2,2,1,false),
-        protocol3 (100,30,71,4,11,9,6,false ),
-        protocol4 (380,1,6,1,3,3,1,false ),
-        protocol5 (500,6,14,1,2,2,1,false ),
-        protocol6 (450,23,1,1,2,2,1,true ); // (HT6P20B)
+        protocol1 (1,350,1,31,1,3,3,1,false ),
+        protocol2 (2,650,1,10,1,2,2,1,false),
+        protocol3 (3,100,30,71,4,11,9,6,false ),
+        protocol4 (4,380,1,6,1,3,3,1,false ),
+        protocol5 (5,500,6,14,1,2,2,1,false ),
+        protocol6 (6,450,23,1,1,2,2,1,true ); // (HT6P20B)
+
+        final int protocolNumber;
+        final int pulseLength;
+        final HighLow syncFactor;
+        final HighLow zero;
+        final HighLow one;
+        final boolean invertedSignal; //if true inverts the high and low logic levels in the HighLow structs
          
-         final int pulseLength;
-         final HighLow syncFactor;
-         final HighLow zero;
-         final HighLow one;
-         final boolean invertedSignal; //if true inverts the high and low logic levels in the HighLow structs
-         
-        Protocol(int l, int sfh, int sfl, int zh, int zl, int oh, int ol, boolean inv)
+        Protocol(int n,int l, int sfh, int sfl, int zh, int zl, int oh, int ol, boolean inv)
         {
+            this.protocolNumber = n;
             this.pulseLength = l;
             this.syncFactor = new HighLow((byte)sfh, (byte)sfl);
             this.zero = new HighLow((byte)zh, (byte) zl);
@@ -89,30 +91,33 @@ package org.ladbury.sockets;
         }
     }
 
-public class RCSwitch
+    enum TriState {zero,one,floating}
+
+class RCSwitch
 {
 
 
-    Protocol proto;
-    Protocol protocol;
-    int numProto;
-    int nTransmitterPin;
-    int nReceiverInterrupt;
-    int RCSWITCH_MAX_CHANGES =99; //GJW random value
-    int numProto = 6; //sizeof(proto) / sizeof(proto[0])
+    private Protocol proto;
+    private Protocol protocol;
+    private int numProto = 6; //sizeof(proto) / sizeof(proto[0])
+
+    private int nReceiverInterrupt;
+    private int RCSWITCH_MAX_CHANGES =99; //GJW random value
 
 
 //#if not defined( RCSwitchDisableReceiving )
-    /*unsigned*/ long nReceivedValue = 0;
-    /*unsigned*/ int nReceivedBitlength = 0;
-    /*unsigned*/ int nReceivedDelay = 0;
-    /*unsigned*/ int nReceivedProtocol = 0;
-    int nReceiveTolerance = 60;
-final /*unsigned*/ int nSeparationLimit = 4300;
+    private/*unsigned*/ long nReceivedValue = 0;
+    private/*unsigned*/ int nReceivedBitlength = 0;
+    private/*unsigned*/ int nReceivedDelay = 0;
+    private/*unsigned*/ int nReceivedProtocol = 0;
+    private int nReceiveTolerance = 60;
+    private final /*unsigned*/ int nSeparationLimit = 4300;
 // separationLimit: minimum microseconds between received codes, closer codes are ignored.
 // according to discussion on issue //#14 it might be more suitable to set the separation
 // limit to the same time as the 'low' part of the sync signal for the current protocol.
-    /*unsigned*/ int[] timings = new int[RCSWITCH_MAX_CHANGES];
+    private/*unsigned*/ int[] timings = new int[RCSWITCH_MAX_CHANGES];
+    private int nRepeatTransmit;
+    private int nTransmitterPin;
 //#endif
 
     RCSwitch()
@@ -140,47 +145,51 @@ final /*unsigned*/ int nSeparationLimit = 4300;
      */
     void setProtocol(int nProtocol) 
     {
-        if (nProtocol < 1 || nProtocol > numProto) {
-            nProtocol = 1;  // TODO: trigger an error, e.g. "bad protocol" ???
+        for(Protocol p: Protocol.values())
+        {
+            if (p.protocolNumber == nProtocol) this.protocol = p;
+            return;
         }
-    //#ifdef ESP8266
-        this.protocol = proto[nProtocol-1];
-    //#else
-        memcpy_P(&this.protocol, &proto[nProtocol-1], sizeof(Protocol));
-    //#endif
+        // TODO: trigger an error, e.g. "bad protocol" ???
+        this.protocol = Protocol.protocol1;
     }
 
     /**
      * Sets the protocol to send with pulse length in microseconds.
      */
-    void setProtocol(int nProtocol, int nPulseLength) {
-    setProtocol(nProtocol);
-    this.setPulseLength(nPulseLength);
-}
+    void setProtocol(int nProtocol, int nPulseLength)
+    {
+        setProtocol(nProtocol);
+        this.setPulseLength(nPulseLength);
+    }
 
 
     /**
      * Sets pulse length in microseconds
      */
-    void setPulseLength(int nPulseLength) {
-    this.protocol.pulseLength = nPulseLength;
-}
+    void setPulseLength(int nPulseLength)
+    {
+        // TODO this.protocol.pulseLength = nPulseLength;
+    }
 
     /**
      * Sets Repeat Transmits
      */
-    void setRepeatTransmit(int nRepeatTransmit) {
-    this.nRepeatTransmit = nRepeatTransmit;
-}
+    void setRepeatTransmit(int nRepeatTransmit)
+    {
+        this.nRepeatTransmit = nRepeatTransmit;
+    }
 
-/**
- * Set Receiving Tolerance
- */
-//#if not defined( RCSwitchDisableReceiving )
-    void setReceiveTolerance(int nPercent) {
-    nReceiveTolerance = nPercent;
-}
-//#endif
+    /**
+     * Set Receiving Tolerance
+     */
+    void setReceiveTolerance(int nPercent)
+    {
+        //#if not defined( RCSwitchDisableReceiving )
+        nReceiveTolerance = nPercent;
+        //#endif
+    }
+
 
 
     /**
@@ -188,17 +197,19 @@ final /*unsigned*/ int nSeparationLimit = 4300;
      *
      * @param nTransmitterPin    Arduino Pin to which the sender is connected to
      */
-    void enableTransmit(int nTransmitterPin) {
-    this.nTransmitterPin = nTransmitterPin;
-    pinMode(this.nTransmitterPin, OUTPUT);
-}
+    void enableTransmit(int nTransmitterPin)
+    {
+        this.nTransmitterPin = nTransmitterPin;
+        pinMode(this.nTransmitterPin, OUTPUT);
+    }
 
     /**
      * Disable transmissions
      */
-    void disableTransmit() {
-    this.nTransmitterPin = -1;
-}
+    void disableTransmit()
+    {
+        this.nTransmitterPin = -1;
+    }
 
     /**
      * Switch a remote switch on (Type D REV)
@@ -206,9 +217,10 @@ final /*unsigned*/ int nSeparationLimit = 4300;
      * @param sGroup        Code of the switch group (A,B,C,D)
      * @param nDevice       Number of the switch itself (1..3)
      */
-    void switchOn(char sGroup, int nDevice) {
-    this.sendTriState( this.getCodeWordD(sGroup, nDevice, true) );
-}
+    void switchOn(char sGroup, int nDevice)
+    {
+        this.sendTriState( this.getCodeWordD(sGroup, nDevice, true) );
+    }
 
     /**
      * Switch a remote switch off (Type D REV)
@@ -216,9 +228,10 @@ final /*unsigned*/ int nSeparationLimit = 4300;
      * @param sGroup        Code of the switch group (A,B,C,D)
      * @param nDevice       Number of the switch itself (1..3)
      */
-    void switchOff(char sGroup, int nDevice) {
-    this.sendTriState( this.getCodeWordD(sGroup, nDevice, false) );
-}
+    void switchOff(char sGroup, int nDevice)
+    {
+        this.sendTriState( this.getCodeWordD(sGroup, nDevice, false) );
+    }
 
     /**
      * Switch a remote switch on (Type C Intertechno)
@@ -227,9 +240,10 @@ final /*unsigned*/ int nSeparationLimit = 4300;
      * @param nGroup   Number of group (1..4)
      * @param nDevice  Number of device (1..4)
      */
-    void switchOn(char sFamily, int nGroup, int nDevice) {
-    this.sendTriState( this.getCodeWordC(sFamily, nGroup, nDevice, true) );
-}
+    void switchOn(char sFamily, int nGroup, int nDevice)
+    {
+        this.sendTriState( this.getCodeWordC(sFamily, nGroup, nDevice, true) );
+    }
 
     /**
      * Switch a remote switch off (Type C Intertechno)
@@ -238,9 +252,10 @@ final /*unsigned*/ int nSeparationLimit = 4300;
      * @param nGroup   Number of group (1..4)
      * @param nDevice  Number of device (1..4)
      */
-    void switchOff(char sFamily, int nGroup, int nDevice) {
-    this.sendTriState( this.getCodeWordC(sFamily, nGroup, nDevice, false) );
-}
+    void switchOff(char sFamily, int nGroup, int nDevice)
+    {
+        this.sendTriState( this.getCodeWordC(sFamily, nGroup, nDevice, false) );
+    }
 
     /**
      * Switch a remote switch on (Type B with two rotary/sliding switches)
@@ -248,9 +263,10 @@ final /*unsigned*/ int nSeparationLimit = 4300;
      * @param nAddressCode  Number of the switch group (1..4)
      * @param nChannelCode  Number of the switch itself (1..4)
      */
-    void switchOn(int nAddressCode, int nChannelCode) {
-    this.sendTriState( this.getCodeWordB(nAddressCode, nChannelCode, true) );
-}
+    void switchOn(int nAddressCode, int nChannelCode)
+    {
+        this.sendTriState( this.getCodeWordB(nAddressCode, nChannelCode, true) );
+    }
 
     /**
      * Switch a remote switch off (Type B with two rotary/sliding switches)
@@ -258,33 +274,36 @@ final /*unsigned*/ int nSeparationLimit = 4300;
      * @param nAddressCode  Number of the switch group (1..4)
      * @param nChannelCode  Number of the switch itself (1..4)
      */
-    void switchOff(int nAddressCode, int nChannelCode) {
-    this.sendTriState( this.getCodeWordB(nAddressCode, nChannelCode, false) );
-}
+    void switchOff(int nAddressCode, int nChannelCode)
+    {
+        this.sendTriState( this.getCodeWordB(nAddressCode, nChannelCode, false) );
+    }
 
     /**
      * Deprecated, use switchOn(final char* sGroup, final char* sDevice) instead!
      * Switch a remote switch on (Type A with 10 pole DIP switches)
      *
      * @param sGroup        Code of the switch group (refers to DIP switches 1..5 where "1" = on and "0" = off, if all DIP switches are on it's "11111")
-     * @param nChannelCode  Number of the switch itself (1..5)
+     * @param nChannel      Number of the switch itself (1..5)
      */
-    void switchOn(final char* sGroup, int nChannel) {
-  final char* code[6] = { "00000", "10000", "01000", "00100", "00010", "00001" };
-    this.switchOn(sGroup, code[nChannel]);
-}
+    void switchOn(final /*char* */ byte[]sGroup, int nChannel)
+    {
+        final /*char* */ String[] code = { "00000", "10000", "01000", "00100", "00010", "00001" };
+        this.switchOn(sGroup, code[nChannel]);
+    }
 
     /**
      * Deprecated, use switchOff(final char* sGroup, final char* sDevice) instead!
      * Switch a remote switch off (Type A with 10 pole DIP switches)
      *
      * @param sGroup        Code of the switch group (refers to DIP switches 1..5 where "1" = on and "0" = off, if all DIP switches are on it's "11111")
-     * @param nChannelCode  Number of the switch itself (1..5)
+     * @param nChannel      Number of the switch itself (1..5)
      */
-    void switchOff(final char* sGroup, int nChannel) {
-  final char* code[6] = { "00000", "10000", "01000", "00100", "00010", "00001" };
-    this.switchOff(sGroup, code[nChannel]);
-}
+    void switchOff(final /*char* */ byte[]sGroup, int nChannel)
+    {
+        final /*char* */ String[]code = { "00000", "10000", "01000", "00100", "00010", "00001" };
+        this.switchOff(sGroup, code[nChannel]);
+    }
 
     /**
      * Switch a remote switch on (Type A with 10 pole DIP switches)
@@ -292,9 +311,10 @@ final /*unsigned*/ int nSeparationLimit = 4300;
      * @param sGroup        Code of the switch group (refers to DIP switches 1..5 where "1" = on and "0" = off, if all DIP switches are on it's "11111")
      * @param sDevice       Code of the switch device (refers to DIP switches 6..10 (A..E) where "1" = on and "0" = off, if all DIP switches are on it's "11111")
      */
-    void switchOn(final char* sGroup, final char* sDevice) {
-    this.sendTriState( this.getCodeWordA(sGroup, sDevice, true) );
-}
+    void switchOn(final /*char* */ byte[] sGroup, final /*char* */ byte[] sDevice)
+    {
+        this.sendTriState( this.getCodeWordA(sGroup, sDevice, true) );
+    }
 
     /**
      * Switch a remote switch off (Type A with 10 pole DIP switches)
@@ -302,33 +322,35 @@ final /*unsigned*/ int nSeparationLimit = 4300;
      * @param sGroup        Code of the switch group (refers to DIP switches 1..5 where "1" = on and "0" = off, if all DIP switches are on it's "11111")
      * @param sDevice       Code of the switch device (refers to DIP switches 6..10 (A..E) where "1" = on and "0" = off, if all DIP switches are on it's "11111")
      */
-    void switchOff(final char* sGroup, final char* sDevice) {
-    this.sendTriState( this.getCodeWordA(sGroup, sDevice, false) );
-}
+    void switchOff(final /*char* */ byte[] sGroup, final /*char* */ byte[] sDevice)
+    {
+        this.sendTriState( this.getCodeWordA(sGroup, sDevice, false) );
+    }
 
 
 /**
  * Returns a char[13], representing the code word to be send.
  *
  */
-    char* getCodeWordA(final char* sGroup, final char* sDevice, boolean bStatus) {
-    static char sReturn[13];
-    int nReturnPos = 0;
+    /*char* */ byte[] getCodeWordA(final /*char* */ byte[] sGroup, final /*char* */ byte[] sDevice, boolean bStatus)
+    {
+        /*static*/ char[] sReturn = new char[13];
+        int nReturnPos = 0;
 
-    for (int i = 0; i < 5; i++) {
-        sReturn[nReturnPos++] = (sGroup[i] == '0') ? 'F' : '0';
-    }
+        for (int i = 0; i < 5; i++) {
+            sReturn[nReturnPos++] = (sGroup[i] == '0') ? 'F' : '0';
+        }
 
-    for (int i = 0; i < 5; i++) {
-        sReturn[nReturnPos++] = (sDevice[i] == '0') ? 'F' : '0';
-    }
+        for (int i = 0; i < 5; i++) {
+            sReturn[nReturnPos++] = (sDevice[i] == '0') ? 'F' : '0';
+        }
 
-    sReturn[nReturnPos++] = bStatus ? '0' : 'F';
-    sReturn[nReturnPos++] = bStatus ? 'F' : '0';
+        sReturn[nReturnPos++] = bStatus ? '0' : 'F';
+        sReturn[nReturnPos++] = bStatus ? 'F' : '0';
 
-    sReturn[nReturnPos] = '\0';
+        sReturn[nReturnPos] = '\0';
     return sReturn;
-}
+    }
 
 /**
  * Encoding for type B switches with two rotary/sliding switches.
@@ -347,64 +369,66 @@ final /*unsigned*/ int nSeparationLimit = 4300;
  *
  * @return char[13], representing a tristate code word of length 12
  */
-    char* getCodeWordB(int nAddressCode, int nChannelCode, boolean bStatus) {
-    static char sReturn[13];
-    int nReturnPos = 0;
+    /* char* */ byte[] getCodeWordB(int nAddressCode, int nChannelCode, boolean bStatus)
+    {
+        /*static*/ char[] sReturn = new char[13];
+        int nReturnPos = 0;
 
-    if (nAddressCode < 1 || nAddressCode > 4 || nChannelCode < 1 || nChannelCode > 4) {
-        return 0;
+        if (nAddressCode < 1 || nAddressCode > 4 || nChannelCode < 1 || nChannelCode > 4) {
+            return 0;
+        }
+
+        for (int i = 1; i <= 4; i++) {
+            sReturn[nReturnPos++] = (nAddressCode == i) ? '0' : 'F';
+        }
+
+        for (int i = 1; i <= 4; i++) {
+            sReturn[nReturnPos++] = (nChannelCode == i) ? '0' : 'F';
+        }
+
+        sReturn[nReturnPos++] = 'F';
+        sReturn[nReturnPos++] = 'F';
+        sReturn[nReturnPos++] = 'F';
+
+        sReturn[nReturnPos++] = bStatus ? 'F' : '0';
+
+        sReturn[nReturnPos] = '\0';
+        return sReturn;
     }
-
-    for (int i = 1; i <= 4; i++) {
-        sReturn[nReturnPos++] = (nAddressCode == i) ? '0' : 'F';
-    }
-
-    for (int i = 1; i <= 4; i++) {
-        sReturn[nReturnPos++] = (nChannelCode == i) ? '0' : 'F';
-    }
-
-    sReturn[nReturnPos++] = 'F';
-    sReturn[nReturnPos++] = 'F';
-    sReturn[nReturnPos++] = 'F';
-
-    sReturn[nReturnPos++] = bStatus ? 'F' : '0';
-
-    sReturn[nReturnPos] = '\0';
-    return sReturn;
-}
 
 /**
  * Like getCodeWord (Type C = Intertechno)
  */
-    char* getCodeWordC(char sFamily, int nGroup, int nDevice, boolean bStatus) {
-    static char sReturn[13];
-    int nReturnPos = 0;
+    /* char* */ byte[] getCodeWordC(char sFamily, int nGroup, int nDevice, boolean bStatus)
+    {
+        static char sReturn[13];
+        int nReturnPos = 0;
 
-    int nFamily = (int)sFamily - 'a';
-    if ( nFamily < 0 || nFamily > 15 || nGroup < 1 || nGroup > 4 || nDevice < 1 || nDevice > 4) {
-        return 0;
-    }
+        int nFamily = (int)sFamily - 'a';
+        if ( nFamily < 0 || nFamily > 15 || nGroup < 1 || nGroup > 4 || nDevice < 1 || nDevice > 4) {
+            return 0;
+        }
 
-    // encode the family into four bits
-    sReturn[nReturnPos++] = (nFamily & 1) ? 'F' : '0';
-    sReturn[nReturnPos++] = (nFamily & 2) ? 'F' : '0';
-    sReturn[nReturnPos++] = (nFamily & 4) ? 'F' : '0';
-    sReturn[nReturnPos++] = (nFamily & 8) ? 'F' : '0';
+        // encode the family into four bits
+        sReturn[nReturnPos++] = (nFamily & 1) ? 'F' : '0';
+        sReturn[nReturnPos++] = (nFamily & 2) ? 'F' : '0';
+        sReturn[nReturnPos++] = (nFamily & 4) ? 'F' : '0';
+        sReturn[nReturnPos++] = (nFamily & 8) ? 'F' : '0';
 
-    // encode the device and group
-    sReturn[nReturnPos++] = ((nDevice-1) & 1) ? 'F' : '0';
-    sReturn[nReturnPos++] = ((nDevice-1) & 2) ? 'F' : '0';
-    sReturn[nReturnPos++] = ((nGroup-1) & 1) ? 'F' : '0';
-    sReturn[nReturnPos++] = ((nGroup-1) & 2) ? 'F' : '0';
+        // encode the device and group
+        sReturn[nReturnPos++] = ((nDevice-1) & 1) ? 'F' : '0';
+        sReturn[nReturnPos++] = ((nDevice-1) & 2) ? 'F' : '0';
+        sReturn[nReturnPos++] = ((nGroup-1) & 1) ? 'F' : '0';
+        sReturn[nReturnPos++] = ((nGroup-1) & 2) ? 'F' : '0';
 
-    // encode the status code
-    sReturn[nReturnPos++] = '0';
-    sReturn[nReturnPos++] = 'F';
-    sReturn[nReturnPos++] = 'F';
-    sReturn[nReturnPos++] = bStatus ? 'F' : '0';
+        // encode the status code
+        sReturn[nReturnPos++] = '0';
+        sReturn[nReturnPos++] = 'F';
+        sReturn[nReturnPos++] = 'F';
+        sReturn[nReturnPos++] = bStatus ? 'F' : '0';
 
-    sReturn[nReturnPos] = '\0';
-    return sReturn;
+        sReturn[nReturnPos] = '\0';
+        return sReturn;
 }
 
 /**
@@ -426,252 +450,269 @@ final /*unsigned*/ int nSeparationLimit = 4300;
  *
  * @return char[13], representing a tristate code word of length 12
  */
-    /*char* */ byte[] getCodeWordD(char sGroup, int nDevice, boolean bStatus) {
-    static char sReturn[13];
-    int nReturnPos = 0;
+    /*char* */ byte[] getCodeWordD(char sGroup, int nDevice, boolean bStatus)
+    {
+        static char sReturn[13];
+        int nReturnPos = 0;
 
-    // sGroup must be one of the letters in "abcdABCD"
-    int nGroup = (sGroup >= 'a') ? (int)sGroup - 'a' : (int)sGroup - 'A';
-    if ( nGroup < 0 || nGroup > 3 || nDevice < 1 || nDevice > 3) {
-        return 0;
+        // sGroup must be one of the letters in "abcdABCD"
+        int nGroup = (sGroup >= 'a') ? (int)sGroup - 'a' : (int)sGroup - 'A';
+        if ( nGroup < 0 || nGroup > 3 || nDevice < 1 || nDevice > 3) {
+            return 0;
+        }
+
+        for (int i = 0; i < 4; i++) {
+            sReturn[nReturnPos++] = (nGroup == i) ? '1' : 'F';
+        }
+
+        for (int i = 1; i <= 3; i++) {
+            sReturn[nReturnPos++] = (nDevice == i) ? '1' : 'F';
+        }
+
+        sReturn[nReturnPos++] = '0';
+        sReturn[nReturnPos++] = '0';
+        sReturn[nReturnPos++] = '0';
+
+        sReturn[nReturnPos++] = bStatus ? '1' : '0';
+        sReturn[nReturnPos++] = bStatus ? '0' : '1';
+
+        sReturn[nReturnPos] = '\0';
+        return sReturn;
     }
-
-    for (int i = 0; i < 4; i++) {
-        sReturn[nReturnPos++] = (nGroup == i) ? '1' : 'F';
-    }
-
-    for (int i = 1; i <= 3; i++) {
-        sReturn[nReturnPos++] = (nDevice == i) ? '1' : 'F';
-    }
-
-    sReturn[nReturnPos++] = '0';
-    sReturn[nReturnPos++] = '0';
-    sReturn[nReturnPos++] = '0';
-
-    sReturn[nReturnPos++] = bStatus ? '1' : '0';
-    sReturn[nReturnPos++] = bStatus ? '0' : '1';
-
-    sReturn[nReturnPos] = '\0';
-    return sReturn;
-}
 
     /**
      * @param sCodeWord   a tristate code word consisting of the letter 0, 1, F
      */
-    void sendTriState(final byte[] sCodeWord) {
-    // turn the tristate code word into the corresponding bit pattern, then send it
-    /*unsigned*/ long code = 0;
-    /*unsigned*/ int length = 0;
-    for (final char* p = sCodeWord; *p; p++) {
-        code <<= 2L;
-        switch (*p) {
-            case '0':
-                // bit pattern 00
-                break;
-            case 'F':
-                // bit pattern 01
-                code |= 1L;
-                break;
-            case '1':
-                // bit pattern 11
-                code |= 3L;
-                break;
+    void sendTriState(final byte[] sCodeWord)
+    {
+        // turn the tristate code word into the corresponding bit pattern, then send it
+        /*unsigned*/ long code = 0;
+        /*unsigned*/ int length = 0;
+        for (final char* p = sCodeWord; *p; p++) {
+            code <<= 2L;
+            switch (*p) {
+                case '0':
+                    // bit pattern 00
+                    break;
+                case 'F':
+                    // bit pattern 01
+                    code |= 1L;
+                    break;
+                case '1':
+                    // bit pattern 11
+                    code |= 3L;
+                    break;
+            }
+            length += 2;
         }
-        length += 2;
+        this.send(code, length);
     }
-    this.send(code, length);
-}
 
     /**
      * @param sCodeWord   a binary code word consisting of the letter 0, 1
      */
-    void send(final byte[] sCodeWord) {
-    // turn the tristate code word into the corresponding bit pattern, then send it
-    /*unsigned*/ long code = 0;
-    /*unsigned*/ int length = 0;
-    for (final char* p = sCodeWord; *p; p++) {
-        code <<= 1L;
-        if (*p != '0')
-        code |= 1L;
-        length++;
+    void send(final byte[] sCodeWord)
+    {
+        // turn the tristate code word into the corresponding bit pattern, then send it
+        /*unsigned*/ long code = 0;
+        /*unsigned*/ int length = 0;
+        for (final char* p = sCodeWord; *p; p++) {
+            code <<= 1L;
+            if (*p != '0')
+            code |= 1L;
+            length++;
+        }
+        this.send(code, length);
     }
-    this.send(code, length);
-}
 
     /**
      * Transmit the first 'length' bits of the integer 'code'. The
      * bits are sent from MSB to LSB, i.e., first the bit at position length-1,
      * then the bit at position length-2, and so on, till finally the bit at position 0.
      */
-    void send(/*unsigned*/ long code, /*unsigned*/ int length) {
-    if (this.nTransmitterPin == -1)
-    return;
+    void send(/*unsigned*/ long code, /*unsigned*/ int length)
+    {
+        if (this.nTransmitterPin == -1)
+        return;
 
-//#if not defined( RCSwitchDisableReceiving )
-    // make sure the receiver is disabled while we transmit
-    int nReceiverInterrupt_backup = nReceiverInterrupt;
-    if (nReceiverInterrupt_backup != -1) {
-        this.disableReceive();
-    }
-//#endif
-
-    for (int nRepeat = 0; nRepeat < nRepeatTransmit; nRepeat++) {
-        for (int i = length-1; i >= 0; i--) {
-            if (code & (1L << i))
-                this.transmit(protocol.one);
-      else
-            this.transmit(protocol.zero);
+    //#if not defined( RCSwitchDisableReceiving )
+        // make sure the receiver is disabled while we transmit
+        int nReceiverInterrupt_backup = nReceiverInterrupt;
+        if (nReceiverInterrupt_backup != -1) {
+            this.disableReceive();
         }
-        this.transmit(protocol.syncFactor);
-    }
+    //#endif
 
-//#if not defined( RCSwitchDisableReceiving )
-    // enable receiver again if we just disabled it
-    if (nReceiverInterrupt_backup != -1) {
-        this.enableReceive(nReceiverInterrupt_backup);
+        for (int nRepeat = 0; nRepeat < nRepeatTransmit; nRepeat++) {
+            for (int i = length-1; i >= 0; i--) {
+                if (code & (1L << i))
+                    this.transmit(protocol.one);
+          else
+                this.transmit(protocol.zero);
+            }
+            this.transmit(protocol.syncFactor);
+        }
+
+    //#if not defined( RCSwitchDisableReceiving )
+        // enable receiver again if we just disabled it
+        if (nReceiverInterrupt_backup != -1) {
+            this.enableReceive(nReceiverInterrupt_backup);
+        }
+    //#endif
     }
-//#endif
-}
 
     /**
      * Transmit a single high-low pulse.
      */
-    void transmit(HighLow pulses) {
-    byte /*uint8_t*/ firstLogicLevel = (this.protocol.invertedSignal) ? LOW : HIGH;
-    byte /*uint8_t*/ secondLogicLevel = (this.protocol.invertedSignal) ? HIGH : LOW;
+    void transmit(HighLow pulses)
+    {
+        byte /*uint8_t*/ firstLogicLevel = (this.protocol.invertedSignal) ? LOW : HIGH;
+        byte /*uint8_t*/ secondLogicLevel = (this.protocol.invertedSignal) ? HIGH : LOW;
 
-    digitalWrite(this.nTransmitterPin, firstLogicLevel);
-    delayMicroseconds( this.protocol.pulseLength * pulses.high);
-    digitalWrite(this.nTransmitterPin, secondLogicLevel);
-    delayMicroseconds( this.protocol.pulseLength * pulses.low);
-}
+        digitalWrite(this.nTransmitterPin, firstLogicLevel);
+        delayMicroseconds( this.protocol.pulseLength * pulses.high);
+        digitalWrite(this.nTransmitterPin, secondLogicLevel);
+        delayMicroseconds( this.protocol.pulseLength * pulses.low);
+    }
 
 
-//#if not defined( RCSwitchDisableReceiving )
+    //#if not defined( RCSwitchDisableReceiving )
     /**
      * Enable receiving data
      */
-    void enableReceive(int interrupt) {
-    this.nReceiverInterrupt = interrupt;
-    this.enableReceive();
-}
-
-    void enableReceive() {
-    if (this.nReceiverInterrupt != -1) {
-        nReceivedValue = 0;
-        nReceivedBitlength = 0;
-//#if defined(RaspberryPi) // Raspberry Pi
-        wiringPiISR(this.nReceiverInterrupt, INT_EDGE_BOTH, &handleInterrupt);
-//#else // Arduino
-        attachInterrupt(this.nReceiverInterrupt, handleInterrupt, CHANGE);
-//#endif
+    void enableReceive(int interrupt)
+    {
+        this.nReceiverInterrupt = interrupt;
+        this.enableReceive();
     }
-}
+
+    void enableReceive()
+    {
+        if (this.nReceiverInterrupt != -1) {
+            nReceivedValue = 0;
+            nReceivedBitlength = 0;
+    //#if defined(RaspberryPi) // Raspberry Pi
+            wiringPiISR(this.nReceiverInterrupt, INT_EDGE_BOTH, &handleInterrupt);
+    //#else // Arduino
+            //attachInterrupt(this.nReceiverInterrupt, handleInterrupt, CHANGE);
+    //#endif
+        }
+    }
 
     /**
      * Disable receiving data
      */
-    void disableReceive() {
-//#if not defined(RaspberryPi) // Arduino
-            detachInterrupt(this.nReceiverInterrupt);
-//#endif // For Raspberry Pi (wiringPi) you can't unregister the ISR
-    this.nReceiverInterrupt = -1;
-}
+    void disableReceive()
+    {
+    //#if not defined(RaspberryPi) // Arduino
+        detachInterrupt(this.nReceiverInterrupt);
+    //#endif // For Raspberry Pi (wiringPi) you can't unregister the ISR
+        this.nReceiverInterrupt = -1;
+    }
 
-    boolean available() {
-    return nReceivedValue != 0;
-}
+    boolean available()
+    {
+        return nReceivedValue != 0;
+    }
 
-    void resetAvailable() {
-    nReceivedValue = 0;
-}
+    void resetAvailable()
+    {
+        nReceivedValue = 0;
+    }
 
-    /*unsigned*/ long getReceivedValue() {
-    return nReceivedValue;
-}
+    /*unsigned*/ long getReceivedValue()
+    {
+        return nReceivedValue;
+    }
 
-    /*unsigned*/ int getReceivedBitlength() {
-    return nReceivedBitlength;
-}
+    /*unsigned*/ int getReceivedBitlength()
+    {
+        return nReceivedBitlength;
+    }
 
-    /*unsigned*/ int getReceivedDelay() {
-    return nReceivedDelay;
-}
+    /*unsigned*/ int getReceivedDelay()
+    {
+        return nReceivedDelay;
+    }
 
-    /*unsigned*/ int getReceivedProtocol() {
-    return nReceivedProtocol;
-}
+    /*unsigned*/ int getReceivedProtocol()
+    {
+        return nReceivedProtocol;
+    }
 
-    /*unsigned*/ int* getReceivedRawdata() {
-    return timings;
-}
+    /*unsigned*/ int[] getReceivedRawdata()
+    {
+        return timings;
+    }
 
     /* helper function for the receiveProtocol method */
-    static /*inline*/ /*unsigned*/ int diff(int A, int B) {
-    return abs(A - B);
-}
+    static /*inline*/ /*unsigned*/ int diff(int A, int B)
+    {
+        return Math.abs(A - B);
+    }
 
     /**
      *
      */
-    boolean /*RECEIVE_ATTR*/ receiveProtocol(final int p, /*unsigned*/ int changeCount) {
-//#ifdef ESP8266
-    final Protocol &pro = proto[p-1];
-//#else
-    Protocol pro;
-    memcpy_P(&pro, &proto[p-1], sizeof(Protocol));
-//#endif
+    boolean /*RECEIVE_ATTR*/ receiveProtocol(final int p, /*unsigned*/ int changeCount)
+    {
+    //#ifdef ESP8266
+        final Protocol &pro = proto[p-1];
+    //#else
+        Protocol pro;
+        memcpy_P(&pro, &proto[p-1], sizeof(Protocol));
+    //#endif
 
-    /*unsigned*/ long code = 0;
-    //Assuming the longer pulse length is the pulse captured in timings[0]
-    final /*unsigned*/ int syncLengthInPulses =  ((pro.syncFactor.low) > (pro.syncFactor.high)) ? (pro.syncFactor.low) : (pro.syncFactor.high);
-    final /*unsigned*/ int delay = timings[0] / syncLengthInPulses;
-    final /*unsigned*/ int delayTolerance = delay * nReceiveTolerance / 100;
-    
-    /* For protocols that start low, the sync period looks like
-     *               _________
-     * _____________|         |XXXXXXXXXXXX|
-     *
-     * |--1st dur--|-2nd dur-|-Start data-|
-     *
-     * The 3rd saved duration starts the data.
-     *
-     * For protocols that start high, the sync period looks like
-     *
-     *  ______________
-     * |              |____________|XXXXXXXXXXXXX|
-     *
-     * |-filtered out-|--1st dur--|--Start data--|
-     *
-     * The 2nd saved duration starts the data
-     */
-    final /*unsigned*/ int firstDataTiming = (pro.invertedSignal) ? (2) : (1);
+        /*unsigned*/ long code = 0;
+        //Assuming the longer pulse length is the pulse captured in timings[0]
+        final /*unsigned*/ int syncLengthInPulses =  ((pro.syncFactor.low) > (pro.syncFactor.high)) ? (pro.syncFactor.low) : (pro.syncFactor.high);
+        final /*unsigned*/ int delay = timings[0] / syncLengthInPulses;
+        final /*unsigned*/ int delayTolerance = delay * nReceiveTolerance / 100;
 
-    for (/*unsigned*/ int i = firstDataTiming; i < changeCount - 1; i += 2) {
-        code <<= 1;
-        if (diff(timings[i], delay * pro.zero.high) < delayTolerance &&
-                diff(timings[i + 1], delay * pro.zero.low) < delayTolerance) {
-            // zero
-        } else if (diff(timings[i], delay * pro.one.high) < delayTolerance &&
-                diff(timings[i + 1], delay * pro.one.low) < delayTolerance) {
-            // one
-            code |= 1;
-        } else {
-            // Failed
-            return false;
+        /* For protocols that start low, the sync period looks like
+         *               _________
+         * _____________|         |XXXXXXXXXXXX|
+         *
+         * |--1st dur--|-2nd dur-|-Start data-|
+         *
+         * The 3rd saved duration starts the data.
+         *
+         * For protocols that start high, the sync period looks like
+         *
+         *  ______________
+         * |              |____________|XXXXXXXXXXXXX|
+         *
+         * |-filtered out-|--1st dur--|--Start data--|
+         *
+         * The 2nd saved duration starts the data
+         */
+        final /*unsigned*/ int firstDataTiming = (pro.invertedSignal) ? (2) : (1);
+
+        for (/*unsigned*/ int i = firstDataTiming; i < changeCount - 1; i += 2) {
+            code <<= 1;
+            if (diff(timings[i], delay * pro.zero.high) < delayTolerance &&
+                    diff(timings[i + 1], delay * pro.zero.low) < delayTolerance) {
+                // zero
+            } else if (diff(timings[i], delay * pro.one.high) < delayTolerance &&
+                    diff(timings[i + 1], delay * pro.one.low) < delayTolerance) {
+                // one
+                code |= 1;
+            } else {
+                // Failed
+                return false;
+            }
         }
-    }
 
-    if (changeCount > 7) {    // ignore very short transmissions: no device sends them, so this must be noise
-        nReceivedValue = code;
-        nReceivedBitlength = (changeCount - 1) / 2;
-        nReceivedDelay = delay;
-        nReceivedProtocol = p;
-        return true;
-    }
+        if (changeCount > 7) {    // ignore very short transmissions: no device sends them, so this must be noise
+            nReceivedValue = code;
+            nReceivedBitlength = (changeCount - 1) / 2;
+            nReceivedDelay = delay;
+            nReceivedProtocol = p;
+            return true;
+        }
 
-    return false;
-}
+        return false;
+    }
 
     void /*RECEIVE_ATTR*/ handleInterrupt() {
 
