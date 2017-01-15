@@ -32,7 +32,7 @@ enum TriState {zero,one,floating}
  *
  * Created by GJWood on 14/01/2017.
  */
-public class CodeWords
+class CodeWords
 {
 
     /**
@@ -57,7 +57,7 @@ public class CodeWords
             }
             length += 2;
         }
-        RCSwitch.send(code, length);
+        Main.getTransmitter().send(code, length);
     }
 
 

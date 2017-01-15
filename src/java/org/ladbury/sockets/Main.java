@@ -11,26 +11,30 @@ import com.pi4j.io.gpio.RaspiPin;
 @SuppressWarnings("CanBeFinal")
 public class Main implements Runnable,IParameterValidator
 {
+    static Main main;
     @Parameter(names = {"--help", "-h",},description = "Display help information", help = true)
     private boolean help=false;
     @Parameter(names = {"--demo", "-d"},description = "Demonstration")
     private boolean demo = false;
-    @Parameter(names = {"--testt", "-t"},description = "Test tranmitter")
-    private boolean testt = false;
+    @Parameter(names = {"--testRCSwitch", "-trc"},description = "Test RC Switch")
+    private boolean testRC = false;
+    @Parameter(names = {"--testRadioTransmitter", "-trt"},description = "Test Radio Transmitter")
+    private boolean testRT = false;
     @Parameter(names = {"--switch","-s"},description = "Switch a socket (1-4), 0 = all add -on if required",arity = 1)
     private int switchNumber = -1;
     @Parameter(names = {"--train","-t"}, description = "Train socket (1-4)", arity = 1)
     private int trainSwitchNumber = -1;
     @Parameter(names = "-on", description = "if present the socket is turned on, else it is turned off")
     private boolean switchOn = false;
-    @Parameter(names = {"--Receive", "-r"},description = "Activate Receiver")
-    private boolean receive = false;
+    @Parameter(names = {"--TestRadioReceiver", "-trr"},description = "Test Radio Receiver")
+    private boolean testRR = false;
 
 
     private JCommander jc;
     private int numberArgs =0;
     private final GpioController gpio;
     private RadioReceiver radioReceiver;
+    private RadioTransmitter radioTransmitter;
 
 private static SocketControl s;
 
@@ -38,6 +42,9 @@ private static SocketControl s;
     {
         gpio= GpioFactory.getInstance();;
     }
+
+    public static RadioTransmitter getTransmitter(){return main.radioTransmitter;}
+    public static RadioReceiver getReceiver(){return main.radioReceiver;}
 
     public static void main(String[] args)
     {
@@ -77,17 +84,18 @@ private static SocketControl s;
         if (demo)demo();
         if (trainSwitchNumber>0) s.programSocket(trainSwitchNumber);
         if (switchNumber>=0) s.switchSocket(switchNumber,switchOn);
-        if (testt)
+        if (testRC)
         {
-            TestTransmitter tt = new TestTransmitter();
+            TestRCSwitch tt = new TestRCSwitch();
             tt.test1();
         }
-
-        if (receive)
+        if (testRR)
         {
-            //this.receivePin = gpio.provisionDigitalInputPin(RaspiPin.GPIO_10,"Receiver Pin");
-
-            this.radioReceiver = new RadioReceiver(gpio.provisionDigitalInputPin(RaspiPin.GPIO_10,"Receiver Pin"));
+            this.radioReceiver = new RadioReceiver(gpio.provisionDigitalInputPin(RaspiPin.GPIO_25,"Receiver Pin"));
+        }
+        if (testRT)
+        {
+            this.radioTransmitter = new RadioTransmitter(gpio.provisionDigitalOutputPin(RaspiPin.GPIO_27,"Transmitter Pin"));
         }
 
         System.exit(0);
