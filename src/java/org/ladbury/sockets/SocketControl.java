@@ -24,6 +24,7 @@ import java.util.HashMap;
  */
 public class SocketControl
 {
+
     /**
      * 0 is pin low, 1 is pin high
      * d2 controls all sockets / individual sockets d2 = 0 is all, d2 = 0 is individual
@@ -80,7 +81,7 @@ public class SocketControl
      * SocketControl    -   Constructor, sets up the GPIO pins required to control the sockets,
      *                      Set up map from int to socket code
      */
-    public SocketControl()
+    public SocketControl(GpioController gpio)
     {
         socketMap = new HashMap<>();
         socketMap.put(0,SocketCode.ALL);
@@ -89,7 +90,6 @@ public class SocketControl
         socketMap.put(3,SocketCode.SOCKET3);
         socketMap.put(4,SocketCode.SOCKET4);
 
-        final GpioController gpio = GpioFactory.getInstance();
         // the pins numbering scheme is different using pi4j
         // GPIO pinout uses the Pi4J/WiringPi GPIO numbering scheme.
 

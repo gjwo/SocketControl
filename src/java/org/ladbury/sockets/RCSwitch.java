@@ -1,34 +1,35 @@
 package org.ladbury.sockets;
-
+import com.pi4j.io.gpio.*;
 /**
- * ported by GJWood on 14/01/2017.
+ * ported to java by GJWood on 14/01/2017.
+ *
  *   RCSwitch - Arduino libary for remote control outlet switches
- Copyright (c) 2011 Suat Özgür.  All right reserved.
+ * Copyright (c) 2011 Suat Özgür.  All right reserved.
+ *
+ * Contributors:
+ * - Andre Koehler / info(at)tomate-online(dot)de
+ * - Gordeev Andrey Vladimirovich / gordeev(at)openpyro(dot)com
+ * - Skineffect / http://forum.ardumote.com/viewtopic.php?f=2&t=46
+ * - Dominik Fischer / dom_fischer(at)web(dot)de
+ * - Frank Oltmanns / <first name>.<last name>(at)gmail(dot)com
+ * - Andreas Steinel / A.<lastname>(at)gmail(dot)com
+ * - Max Horn / max(at)quendi(dot)de
+ * - Robert ter Vehn / <first name>.<last name>(at)gmail(dot)com
+ * - Johann Richard / <first name>.<last name>(at)gmail(dot)com
+ * - Vlad Gheorghe / <first name>.<last name>(at)gmail(dot)com https://github.com/vgheo
 
- Contributors:
- - Andre Koehler / info(at)tomate-online(dot)de
- - Gordeev Andrey Vladimirovich / gordeev(at)openpyro(dot)com
- - Skineffect / http://forum.ardumote.com/viewtopic.php?f=2&t=46
- - Dominik Fischer / dom_fischer(at)web(dot)de
- - Frank Oltmanns / <first name>.<last name>(at)gmail(dot)com
- - Andreas Steinel / A.<lastname>(at)gmail(dot)com
- - Max Horn / max(at)quendi(dot)de
- - Robert ter Vehn / <first name>.<last name>(at)gmail(dot)com
- - Johann Richard / <first name>.<last name>(at)gmail(dot)com
- - Vlad Gheorghe / <first name>.<last name>(at)gmail(dot)com https://github.com/vgheo
-
- Project home: https://github.com/sui77/rc-switch/
- This library is free software; you can redistribute it and/or
- modify it under the terms of the GNU Lesser General Public
- License as published by the Free Software Foundation; either
- version 2.1 of the License, or (at your option) any later version.
- This library is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- Lesser General Public License for more details.
- You should have received a copy of the GNU Lesser General Public
- License along with this library; if not, write to the Free Software
- Foundation, In
+ * Project home: https://github.com/sui77/rc-switch/
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, In
  */
 
     class HighLow {
@@ -63,7 +64,6 @@ package org.ladbury.sockets;
      *    { 500, {  6, 14 }, {  1,  2 }, {  2,  1 }, false },    // protocol 5
      *    { 450, { 23,  1 }, {  1,  2 }, {  2,  1 }, true }      // protocol 6 (HT6P20B)
      */
-
     enum Protocol
     {      
         protocol1 (1,350,1,31,1,3,3,1,false ),
@@ -101,21 +101,7 @@ class RCSwitch
     private Protocol protocol;
     private int numProto = 6; //sizeof(proto) / sizeof(proto[0])
 
-    private int nReceiverInterrupt;
-    private int RCSWITCH_MAX_CHANGES =99; //GJW random value
 
-
-//#if not defined( RCSwitchDisableReceiving )
-    private/*unsigned*/ long nReceivedValue = 0;
-    private/*unsigned*/ int nReceivedBitlength = 0;
-    private/*unsigned*/ int nReceivedDelay = 0;
-    private/*unsigned*/ int nReceivedProtocol = 0;
-    private int nReceiveTolerance = 60;
-    private final /*unsigned*/ int nSeparationLimit = 4300;
-// separationLimit: minimum microseconds between received codes, closer codes are ignored.
-// according to discussion on issue //#14 it might be more suitable to set the separation
-// limit to the same time as the 'low' part of the sync signal for the current protocol.
-    private/*unsigned*/ int[] timings = new int[RCSWITCH_MAX_CHANGES];
     private int nRepeatTransmit;
     private int nTransmitterPin;
 //#endif
@@ -126,9 +112,6 @@ class RCSwitch
         this.setRepeatTransmit(10);
         this.setProtocol(1);
       //#if not defined( RCSwitchDisableReceiving )
-        this.nReceiverInterrupt = -1;
-        this.setReceiveTolerance(60);
-        nReceivedValue = 0;
       //#endif
     }
 
@@ -180,15 +163,6 @@ class RCSwitch
         this.nRepeatTransmit = nRepeatTransmit;
     }
 
-    /**
-     * Set Receiving Tolerance
-     */
-    void setReceiveTolerance(int nPercent)
-    {
-        //#if not defined( RCSwitchDisableReceiving )
-        nReceiveTolerance = nPercent;
-        //#endif
-    }
 
 
 
@@ -214,14 +188,14 @@ class RCSwitch
     /**
      * @param sCodeWord   a binary code word consisting of the letter 0, 1
      */
-    void send(final byte[] sCodeWord)
+    void send(final String sCodeWord)
     {
         // turn the tristate code word into the corresponding bit pattern, then send it
         /*unsigned*/ long code = 0;
         /*unsigned*/ int length = 0;
-        for (final char* p = sCodeWord; *p; p++) {
+        for (int i = 0; i< sCodeWord.length(); i++) {
             code <<= 1L;
-            if (*p != '0')
+            if (sCodeWord.charAt(i) != '0')
             code |= 1L;
             length++;
         }
@@ -248,7 +222,7 @@ class RCSwitch
 
         for (int nRepeat = 0; nRepeat < nRepeatTransmit; nRepeat++) {
             for (int i = length-1; i >= 0; i--) {
-                if (code & (1L << i))
+                if ((code & (1L << i))>0)
                     this.transmit(protocol.one);
           else
                 this.transmit(protocol.zero);
@@ -278,187 +252,6 @@ class RCSwitch
         delayMicroseconds( this.protocol.pulseLength * pulses.low);
     }
 
-
-    //#if not defined( RCSwitchDisableReceiving )
-    /**
-     * Enable receiving data
-     */
-    void enableReceive(int interrupt)
-    {
-        this.nReceiverInterrupt = interrupt;
-        this.enableReceive();
-    }
-
-    void enableReceive()
-    {
-        if (this.nReceiverInterrupt != -1) {
-            nReceivedValue = 0;
-            nReceivedBitlength = 0;
-    //#if defined(RaspberryPi) // Raspberry Pi
-            wiringPiISR(this.nReceiverInterrupt, INT_EDGE_BOTH, &handleInterrupt);
-    //#else // Arduino
-            //attachInterrupt(this.nReceiverInterrupt, handleInterrupt, CHANGE);
-    //#endif
-        }
-    }
-
-    /**
-     * Disable receiving data
-     */
-    void disableReceive()
-    {
-    //#if not defined(RaspberryPi) // Arduino
-        detachInterrupt(this.nReceiverInterrupt);
-    //#endif // For Raspberry Pi (wiringPi) you can't unregister the ISR
-        this.nReceiverInterrupt = -1;
-    }
-
-    boolean available()
-    {
-        return nReceivedValue != 0;
-    }
-
-    void resetAvailable()
-    {
-        nReceivedValue = 0;
-    }
-
-    /*unsigned*/ long getReceivedValue()
-    {
-        return nReceivedValue;
-    }
-
-    /*unsigned*/ int getReceivedBitlength()
-    {
-        return nReceivedBitlength;
-    }
-
-    /*unsigned*/ int getReceivedDelay()
-    {
-        return nReceivedDelay;
-    }
-
-    /*unsigned*/ int getReceivedProtocol()
-    {
-        return nReceivedProtocol;
-    }
-
-    /*unsigned*/ int[] getReceivedRawdata()
-    {
-        return timings;
-    }
-
-    /* helper function for the receiveProtocol method */
-    static /*inline*/ /*unsigned*/ int diff(int A, int B)
-    {
-        return Math.abs(A - B);
-    }
-
-    /**
-     *
-     */
-    boolean /*RECEIVE_ATTR*/ receiveProtocol(final int p, /*unsigned*/ int changeCount)
-    {
-    //#ifdef ESP8266
-        final Protocol &pro = proto[p-1];
-    //#else
-        Protocol pro;
-        memcpy_P(&pro, &proto[p-1], sizeof(Protocol));
-    //#endif
-
-        /*unsigned*/ long code = 0;
-        //Assuming the longer pulse length is the pulse captured in timings[0]
-        final /*unsigned*/ int syncLengthInPulses =  ((pro.syncFactor.low) > (pro.syncFactor.high)) ? (pro.syncFactor.low) : (pro.syncFactor.high);
-        final /*unsigned*/ int delay = timings[0] / syncLengthInPulses;
-        final /*unsigned*/ int delayTolerance = delay * nReceiveTolerance / 100;
-
-        /* For protocols that start low, the sync period looks like
-         *               _________
-         * _____________|         |XXXXXXXXXXXX|
-         *
-         * |--1st dur--|-2nd dur-|-Start data-|
-         *
-         * The 3rd saved duration starts the data.
-         *
-         * For protocols that start high, the sync period looks like
-         *
-         *  ______________
-         * |              |____________|XXXXXXXXXXXXX|
-         *
-         * |-filtered out-|--1st dur--|--Start data--|
-         *
-         * The 2nd saved duration starts the data
-         */
-        final /*unsigned*/ int firstDataTiming = (pro.invertedSignal) ? (2) : (1);
-
-        for (/*unsigned*/ int i = firstDataTiming; i < changeCount - 1; i += 2) {
-            code <<= 1;
-            if (diff(timings[i], delay * pro.zero.high) < delayTolerance &&
-                    diff(timings[i + 1], delay * pro.zero.low) < delayTolerance) {
-                // zero
-            } else if (diff(timings[i], delay * pro.one.high) < delayTolerance &&
-                    diff(timings[i + 1], delay * pro.one.low) < delayTolerance) {
-                // one
-                code |= 1;
-            } else {
-                // Failed
-                return false;
-            }
-        }
-
-        if (changeCount > 7) {    // ignore very short transmissions: no device sends them, so this must be noise
-            nReceivedValue = code;
-            nReceivedBitlength = (changeCount - 1) / 2;
-            nReceivedDelay = delay;
-            nReceivedProtocol = p;
-            return true;
-        }
-
-        return false;
-    }
-
-    void /*RECEIVE_ATTR*/ handleInterrupt()
-    {
-
-        /*static*/ /*unsigned*/ int changeCount = 0;
-        /*static*/ /*unsigned*/ long lastTime = 0;
-        /*static*/ /*unsigned*/ int repeatCount = 0;
-
-      final long time = System.nanoTime()/1000; //micros();
-      final /*unsigned*/ int duration = (int)(time - lastTime);
-
-        if (duration > nSeparationLimit) {
-            // A long stretch without signal level change occurred. This could
-            // be the gap between two transmission.
-            if (diff(duration, timings[0]) < 200) {
-                // This long signal is close in length to the long signal which
-                // started the previously recorded timings; this suggests that
-                // it may indeed by a a gap between two transmissions (we assume
-                // here that a sender will send the signal multiple times,
-                // with roughly the same gap between them).
-                repeatCount++;
-                if (repeatCount == 2) {
-                    for(/*unsigned*/ int i = 1; i <= numProto; i++) {
-                        if (receiveProtocol(i, changeCount)) {
-                            // receive succeeded for protocol i
-                            break;
-                        }
-                    }
-                    repeatCount = 0;
-                }
-            }
-            changeCount = 0;
-        }
-
-        // detect overflow
-        if (changeCount >= RCSWITCH_MAX_CHANGES) {
-            changeCount = 0;
-            repeatCount = 0;
-        }
-
-        timings[changeCount++] = duration;
-        lastTime = time;
-    }
 //#endif
 }
 /*

@@ -4,6 +4,9 @@ import com.beust.jcommander.IParameterValidator;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
+import com.pi4j.io.gpio.GpioController;
+import com.pi4j.io.gpio.GpioFactory;
+import com.pi4j.io.gpio.RaspiPin;
 
 @SuppressWarnings("CanBeFinal")
 public class Main implements Runnable,IParameterValidator
@@ -20,12 +23,21 @@ public class Main implements Runnable,IParameterValidator
     private int trainSwitchNumber = -1;
     @Parameter(names = "-on", description = "if present the socket is turned on, else it is turned off")
     private boolean switchOn = false;
+    @Parameter(names = {"--Receive", "-r"},description = "Activate Receiver")
+    private boolean receive = false;
 
 
     private JCommander jc;
     private int numberArgs =0;
+    private final GpioController gpio;
+    private RadioReceiver radioReceiver;
 
 private static SocketControl s;
+
+    private Main()
+    {
+        gpio= GpioFactory.getInstance();;
+    }
 
     public static void main(String[] args)
     {
@@ -60,7 +72,7 @@ private static SocketControl s;
             System.exit(1);
         }
 
-        s = new SocketControl();
+        s = new SocketControl(this.gpio);
 
         if (demo)demo();
         if (trainSwitchNumber>0) s.programSocket(trainSwitchNumber);
@@ -69,6 +81,13 @@ private static SocketControl s;
         {
             TestTransmitter tt = new TestTransmitter();
             tt.test1();
+        }
+
+        if (receive)
+        {
+            //this.receivePin = gpio.provisionDigitalInputPin(RaspiPin.GPIO_10,"Receiver Pin");
+
+            this.radioReceiver = new RadioReceiver(gpio.provisionDigitalInputPin(RaspiPin.GPIO_10,"Receiver Pin"));
         }
 
         System.exit(0);
