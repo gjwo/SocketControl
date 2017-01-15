@@ -81,7 +81,7 @@ public class SwitchControl
      * @param sGroup        Code of the switch group (refers to DIP switches 1..5 where "1" = on and "0" = off, if all DIP switches are on it's "11111")
      * @param nChannel      Number of the switch itself (1..5)
      */
-    void switchOn(final /*char* */ byte[]sGroup, int nChannel)
+    void switchOn(final String sGroup, int nChannel)
     {
         final /*char* */ String[] code = { "00000", "10000", "01000", "00100", "00010", "00001" };
         this.switchOn(sGroup, code[nChannel]);
@@ -94,7 +94,7 @@ public class SwitchControl
      * @param sGroup        Code of the switch group (refers to DIP switches 1..5 where "1" = on and "0" = off, if all DIP switches are on it's "11111")
      * @param nChannel      Number of the switch itself (1..5)
      */
-    void switchOff(final /*char* */ byte[]sGroup, int nChannel)
+    void switchOff(final String sGroup, int nChannel)
     {
         final /*char* */ String[]code = { "00000", "10000", "01000", "00100", "00010", "00001" };
         this.switchOff(sGroup, code[nChannel]);
@@ -106,7 +106,7 @@ public class SwitchControl
      * @param sGroup        Code of the switch group (refers to DIP switches 1..5 where "1" = on and "0" = off, if all DIP switches are on it's "11111")
      * @param sDevice       Code of the switch device (refers to DIP switches 6..10 (A..E) where "1" = on and "0" = off, if all DIP switches are on it's "11111")
      */
-    void switchOn(final /*char* */ byte[] sGroup, final /*char* */ byte[] sDevice)
+    void switchOn(final String sGroup, final String sDevice)
     {
         CodeWords.sendTriState( CodeWords.getCodeWordA(sGroup, sDevice, true) );
     }
@@ -117,7 +117,7 @@ public class SwitchControl
      * @param sGroup        Code of the switch group (refers to DIP switches 1..5 where "1" = on and "0" = off, if all DIP switches are on it's "11111")
      * @param sDevice       Code of the switch device (refers to DIP switches 6..10 (A..E) where "1" = on and "0" = off, if all DIP switches are on it's "11111")
      */
-    void switchOff(final /*char* */ byte[] sGroup, final /*char* */ byte[] sDevice)
+    void switchOff(final String sGroup, final String sDevice)
     {
         CodeWords.sendTriState( CodeWords.getCodeWordA(sGroup, sDevice, false) );
     }

@@ -2,9 +2,9 @@ package org.ladbury.sockets;
 
 class CodeWord
 {
-    TriState word[];
-    boolean valid;
-    int triBitCount;
+    private TriState word[];
+    private boolean valid;
+    private int triBitCount;
 
     CodeWord() 
     {
@@ -12,8 +12,8 @@ class CodeWord
         valid=false;
         triBitCount=0; 
     }
-    TriState getTriStateBit(int i){return word[i];}
-    void setTriStateBit(int i,TriState t){word[i] = t;}
+    //TriState getTriStateBit(int i){return word[i];}
+    //void setTriStateBit(int i,TriState t){word[i] = t;}
     void setValid(boolean v){valid = v;}
     void addTriStateBit(TriState t)
     {
@@ -21,44 +21,43 @@ class CodeWord
         triBitCount++;
     }
     boolean isValid(){return valid;}
+    TriState[] getWord(){return word;}
 }
 
 enum TriState {zero,one,floating}
 
 
 /**
+ * CodeWords    -   This class constructs the codewords for different switch types
+ *
  * Created by GJWood on 14/01/2017.
  */
 public class CodeWords
 {
 
     /**
-     * @param sCodeWord   a tristate code word consisting of the letter 0, 1, F
+     * @param cw   a tristate code word consisting of the letter 0, 1, F
      */
-    static void sendTriState(final byte[] sCodeWord)
+    static void sendTriState(CodeWord cw)
     {
+        if(!cw.isValid()) return;
         // turn the tristate code word into the corresponding bit pattern, then send it
         /*unsigned*/ long code = 0;
         /*unsigned*/ int length = 0;
-        for (final char* p = sCodeWord; *p; p++)
+        for (TriState t:cw.getWord())
         {
             code <<= 2L;
-            switch (*p) {
-                case '0':
-                    // bit pattern 00
+            switch (t) {
+                case zero:                  // bit pattern 00, no action needed
                     break;
-                case TriState.floating:
-                    // bit pattern 01
-                    code |= 1L;
+                case floating: code |= 1L;  // bit pattern 01
                     break;
-                case '1':
-                    // bit pattern 11
-                    code |= 3L;
+                case one: code |= 3L;       // bit pattern 11
                     break;
             }
             length += 2;
         }
-        ClassName.send(code, length);
+        RCSwitch.send(code, length);
     }
 
 
@@ -79,16 +78,16 @@ public class CodeWords
      *
      * @return char[13], representing a tristate code word of length 12
      */
-    static CodeWord getCodeWordA(final char[] sGroup, final char[] sDevice, boolean bStatus)
+    static CodeWord getCodeWordA(String sGroup, String sDevice, boolean bStatus)
     {
         CodeWord cw = new CodeWord();
         cw.setValid(false);
 
         for (int i = 0; i < 5; i++) {
-            cw.addTriStateBit((sGroup[i] == '0') ? TriState.floating : TriState.zero);
+            cw.addTriStateBit((sGroup.charAt(i) == '0') ? TriState.floating : TriState.zero);
         }
         for (int i = 0; i < 5; i++) {
-            cw.addTriStateBit((sDevice[i] == '0') ? TriState.floating : TriState.zero);
+            cw.addTriStateBit((sDevice.charAt(i) == '0') ? TriState.floating : TriState.zero);
         }
         cw.addTriStateBit(bStatus ? TriState.zero : TriState.floating);
         cw.addTriStateBit(bStatus ? TriState.floating : TriState.zero);
@@ -143,17 +142,16 @@ public class CodeWords
 
     /**
      * Like getCodeWord (Type C = Intertechno)
-     * @param sFamily
-     * @param nGroup
-     * @param nDevice
-     * @param bStatus
-     * @return
+     * @param sFamily   String containing the switch family 'a'-'o'
+     * @param nGroup    the number of the switch group 1-4
+     * @param nDevice   the switch number 1-4
+     * @param bStatus   true = on false = off
+     * @return          The CodeWord command for the device
      */
     static CodeWord getCodeWordC(char sFamily, int nGroup, int nDevice, boolean bStatus)
     {
         CodeWord cw = new CodeWord();
         cw.setValid(false);
-        //////////////////CHECK//////////////
         int nFamily = (int)sFamily - 'a';
         if ( nFamily < 0 || nFamily > 15 || nGroup < 1 || nGroup > 4 || nDevice < 1 || nDevice > 4) {
             return null ;//0
