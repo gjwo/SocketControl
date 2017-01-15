@@ -10,14 +10,14 @@ import java.util.concurrent.TimeUnit;
 
 
 /**
- * TestRCSwitch - tranmit codes using RF 433
+ * TestRCSwitch - transmit codes using RF 433
  * Created by GJWood on 13/01/2017.
  */
 class TestRCSwitch
 {
-    private BitSet address;
-    private RCSwitch transmitter;
-    private Pin transmitterPin;
+    private final BitSet address;
+    private final RCSwitch transmitter;
+    private final Pin transmitterPin;
 
     TestRCSwitch()
     {

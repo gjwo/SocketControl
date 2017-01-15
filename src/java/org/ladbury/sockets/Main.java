@@ -11,7 +11,7 @@ import com.pi4j.io.gpio.RaspiPin;
 @SuppressWarnings("CanBeFinal")
 public class Main implements Runnable,IParameterValidator
 {
-    static Main main;
+    private static Main main;
     @Parameter(names = {"--help", "-h",},description = "Display help information", help = true)
     private boolean help=false;
     @Parameter(names = {"--demo", "-d"},description = "Demonstration")
@@ -40,7 +40,7 @@ private static SocketControl s;
 
     private Main()
     {
-        gpio= GpioFactory.getInstance();;
+        gpio= GpioFactory.getInstance();
     }
 
     public static RadioTransmitter getTransmitter(){return main.radioTransmitter;}

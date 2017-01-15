@@ -4,25 +4,53 @@ import com.pi4j.io.gpio.event.GpioPinDigitalStateChangeEvent;
 import com.pi4j.io.gpio.event.GpioPinListenerDigital;
 import com.pi4j.wiringpi.GpioInterrupt;
 
-
 /**
  * RadioReceiver    -   class for receiving and decoding radio signals via a GPIO pin
- * Created by GJWood on 15/01/2017.
+ *
+ * ported to java for Raspberry Pi by GJWood on 14/01/2017.
+ *
+ * RCSwitch - Arduino library for remote control outlet switches
+ * Copyright (c) 2011 Suat Özgür.  All right reserved.
+ *
+ * Contributors:
+ * - Andre Koehler / info(at)tomate-online(dot)de
+ * - Gordeev Andrey Vladimirovich / gordeev(at)openpyro(dot)com
+ * - Skineffect / http://forum.ardumote.com/viewtopic.php?f=2&t=46
+ * - Dominik Fischer / dom_fischer(at)web(dot)de
+ * - Frank Oltmanns / <first name>.<last name>(at)gmail(dot)com
+ * - Andreas Steinel / A.<lastname>(at)gmail(dot)com
+ * - Max Horn / max(at)quendi(dot)de
+ * - Robert ter Vehn / <first name>.<last name>(at)gmail(dot)com
+ * - Johann Richard / <first name>.<last name>(at)gmail(dot)com
+ * - Vlad Gheorghe / <first name>.<last name>(at)gmail(dot)com https://github.com/vgheo
+
+ * Project home: https://github.com/sui77/rc-switch/
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, In
  */
+
 public class RadioReceiver implements GpioPinListenerDigital
 {
     private int nReceiverInterrupt;
     // We can handle up to (unsigned long) => 32 bit * 2 H/L changes per bit + 2 for sync
     private final int RCSWITCH_MAX_CHANGES =67;
     private/*unsigned*/ long nReceivedValue = 0;
-    private/*unsigned*/ int nReceivedBitlength = 0;
+    private/*unsigned*/ int nReceivedBitLength = 0;
     private/*unsigned*/ int nReceivedDelay = 0;
     private/*unsigned*/ int nReceivedProtocol = 0;
     private Protocol protocol;
-    private Protocol pro;
     private int nReceiveTolerance = 60;
     private final /*unsigned*/ int nSeparationLimit = 4300;
-    private int numProto;
+    private final int numProto = 6;
 
     private final int pinNumber;
     public int getnReceiverInterrupt()
@@ -35,7 +63,7 @@ public class RadioReceiver implements GpioPinListenerDigital
     // separationLimit: minimum microseconds between received codes, closer codes are ignored.
     // according to discussion on issue //#14 it might be more suitable to set the separation
     // limit to the same time as the 'low' part of the sync signal for the current protocol.
-    private/*unsigned*/ volatile int[] timings = new int[RCSWITCH_MAX_CHANGES];
+    private/*unsigned*/ final int[] timings = new int[RCSWITCH_MAX_CHANGES];
 
     RadioReceiver(GpioPinDigitalInput receivePin)
     {
@@ -62,7 +90,7 @@ public class RadioReceiver implements GpioPinListenerDigital
     {
         if (this.nReceiverInterrupt != -1) {
             nReceivedValue = 0;
-            nReceivedBitlength = 0;
+            nReceivedBitLength = 0;
             //#if defined(RaspberryPi) // Raspberry Pi
             this.receivePin.addListener(this);
             //wiringPiISR(this.nReceiverInterrupt, INT_EDGE_BOTH, &handleInterrupt);
@@ -87,10 +115,10 @@ public class RadioReceiver implements GpioPinListenerDigital
     // getters
     boolean available(){return nReceivedValue != 0;}
     /*unsigned*/ long getReceivedValue(){return nReceivedValue;}
-    /*unsigned*/ int getReceivedBitlength(){return nReceivedBitlength;}
+    /*unsigned*/ int getReceivedBitLength(){return nReceivedBitLength;}
     /*unsigned*/ int getReceivedDelay(){return nReceivedDelay;}
     /*unsigned*/ int getReceivedProtocol(){return nReceivedProtocol;}
-    /*unsigned*/ int[] getReceivedRawdata(){return timings;}
+    /*unsigned*/ int[] getReceivedRawData(){return timings;}
 
     // setters
     void resetAvailable(){nReceivedValue = 0;}
@@ -116,16 +144,16 @@ public class RadioReceiver implements GpioPinListenerDigital
      */
     boolean /*RECEIVE_ATTR*/ receiveProtocol(final int pn, /*unsigned*/ int changeCount)
     {
-        this.pro = Protocol.protocol1;
+        this.protocol = Protocol.protocol1;
         for(Protocol pr: Protocol.values())
         {
-            if (pr.protocolNumber == pn){ this.pro = pr; break;}
+            if (pr.protocolNumber == pn){ this.protocol = pr; break;}
         }
 
 
         /*unsigned*/ long code = 0;
         //Assuming the longer pulse length is the pulse captured in timings[0]
-        final /*unsigned*/ int syncLengthInPulses =  ((pro.syncFactor.low) > (pro.syncFactor.high)) ? (pro.syncFactor.low) : (pro.syncFactor.high);
+        final /*unsigned*/ int syncLengthInPulses =  ((protocol.syncFactor.low) > (protocol.syncFactor.high)) ? (protocol.syncFactor.low) : (protocol.syncFactor.high);
         final /*unsigned*/ int delay = timings[0] / syncLengthInPulses;
         final /*unsigned*/ int delayTolerance = delay * nReceiveTolerance / 100;
 
@@ -146,15 +174,15 @@ public class RadioReceiver implements GpioPinListenerDigital
          *
          * The 2nd saved duration starts the data
          */
-        final /*unsigned*/ int firstDataTiming = (pro.invertedSignal) ? (2) : (1);
+        final /*unsigned*/ int firstDataTiming = (protocol.invertedSignal) ? (2) : (1);
 
         for (/*unsigned*/ int i = firstDataTiming; i < changeCount - 1; i += 2) {
             code <<= 1;
-            if (diff(timings[i], delay * pro.zero.high) < delayTolerance &&
-                    diff(timings[i + 1], delay * pro.zero.low) < delayTolerance) {
+            if (diff(timings[i], delay * protocol.zero.high) < delayTolerance &&
+                    diff(timings[i + 1], delay * protocol.zero.low) < delayTolerance) {
                 // zero
-            } else if (diff(timings[i], delay * pro.one.high) < delayTolerance &&
-                    diff(timings[i + 1], delay * pro.one.low) < delayTolerance) {
+            } else if (diff(timings[i], delay * protocol.one.high) < delayTolerance &&
+                    diff(timings[i + 1], delay * protocol.one.low) < delayTolerance) {
                 // one
                 code |= 1;
             } else {
@@ -165,7 +193,7 @@ public class RadioReceiver implements GpioPinListenerDigital
 
         if (changeCount > 7) {    // ignore very short transmissions: no device sends them, so this must be noise
             nReceivedValue = code;
-            nReceivedBitlength = (changeCount - 1) / 2;
+            nReceivedBitLength = (changeCount - 1) / 2;
             nReceivedDelay = delay;
             nReceivedProtocol = pn;
             return true;

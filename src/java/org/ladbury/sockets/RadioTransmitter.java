@@ -1,12 +1,11 @@
 package org.ladbury.sockets;
 import com.pi4j.io.gpio.*;
 import com.pi4j.wiringpi.Gpio;
-import com.pi4j.wiringpi.GpioInterrupt;
 
 /**
- * ported to java by GJWood on 14/01/2017.
+ * ported to java for Raspberry Pi by GJWood on 14/01/2017.
  *
- *   RadioTransmitter - Arduino libary for remote control outlet switches
+ * RCSwitch - Arduino library for remote control outlet switches
  * Copyright (c) 2011 Suat Özgür.  All right reserved.
  *
  * Contributors:
@@ -36,12 +35,11 @@ import com.pi4j.wiringpi.GpioInterrupt;
  */
 
     class HighLow {
-        byte high;
-        byte low;
-        
-        HighLow( byte h, byte l){high = h;low = l;}
-    };
+        final byte high;
+        final byte low;
 
+        HighLow( byte h, byte l){high = h;low = l;}
+    }
 
 class RadioTransmitter
 {
@@ -57,12 +55,12 @@ class RadioTransmitter
         this.nTransmitterPin = Integer.parseInt(transmitterPin.getPin().getName());
         this.setRepeatTransmit(10);
         this.setProtocol(1);
-      //#if not defined( RCSwitchDisableReceiving )
-      //#endif
     }
 
+
     /**
-     * Sets the protocol to send.
+     * setProtocol  -   Sets the protocol to send.
+     * @param protocol  protocol type, see Protocol class
      */
     void setProtocol(Protocol protocol)
     {
@@ -70,7 +68,8 @@ class RadioTransmitter
     }
 
     /**
-     * Sets the protocol to send, from a list of predefined protocols
+     * setProtocol  -   Sets the protocol to send, from a list of predefined protocols
+     * &param nProtocol the protocol number 1-6
      */
     void setProtocol(int nProtocol) 
     {
@@ -108,9 +107,6 @@ class RadioTransmitter
     {
         this.nRepeatTransmit = nRepeatTransmit;
     }
-
-
-
 
     /**
      * Enable transmissions
@@ -176,13 +172,10 @@ class RadioTransmitter
             }
             this.transmit(protocol.syncFactor);
         }
-
-    //#if not defined( RCSwitchDisableReceiving )
         // enable receiver again if we just disabled it
         if (nReceiverInterrupt_backup != -1) {
             Main.getReceiver().enableReceive(nReceiverInterrupt_backup);
         }
-    //#endif
     }
 
     /**
