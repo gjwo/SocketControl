@@ -97,7 +97,7 @@ private static SocketControl s;
         {
             this.radioTransmitter = new RadioTransmitter(gpio.provisionDigitalOutputPin(RaspiPin.GPIO_27,"Transmitter Pin"));
         }
-
+        gpio.shutdown();
         System.exit(0);
 
     }

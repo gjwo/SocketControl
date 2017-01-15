@@ -25,6 +25,10 @@ public class RadioReceiver implements GpioPinListenerDigital
     private int numProto;
 
     private final int pinNumber;
+    public int getnReceiverInterrupt()
+    {
+        return nReceiverInterrupt;
+    }
     private final GpioPinDigitalInput receivePin;
     private volatile GpioPinDigitalStateChangeEvent event;
 

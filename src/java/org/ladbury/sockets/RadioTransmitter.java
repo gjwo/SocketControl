@@ -1,5 +1,6 @@
 package org.ladbury.sockets;
 import com.pi4j.io.gpio.*;
+import com.pi4j.wiringpi.Gpio;
 import com.pi4j.wiringpi.GpioInterrupt;
 
 /**
@@ -46,12 +47,13 @@ class RadioTransmitter
 {
     private Protocol protocol;
     private int nRepeatTransmit;
-    final private int nTransmitterPin;
+    private int nTransmitterPin;
     final private GpioPinDigitalOutput transmitterPin;
 
     RadioTransmitter(GpioPinDigitalOutput transmitterPin)
     {
         this.transmitterPin = transmitterPin;
+        transmitterPin.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
         this.nTransmitterPin = Integer.parseInt(transmitterPin.getPin().getName());
         this.setRepeatTransmit(10);
         this.setProtocol(1);
@@ -117,8 +119,9 @@ class RadioTransmitter
      */
     void enableTransmit(int nTransmitterPin)
     {
-        this.nTransmitterPin = nTransmitterPin;
-        pinMode(this.nTransmitterPin, OUTPUT);
+        // set up in constructor
+        //this.nTransmitterPin = nTransmitterPin;
+        //pinMode(this.nTransmitterPin, OUTPUT);
     }
 
     /**
@@ -158,9 +161,9 @@ class RadioTransmitter
 
     //#if not defined( RCSwitchDisableReceiving )
         // make sure the receiver is disabled while we transmit
-        int nReceiverInterrupt_backup = nReceiverInterrupt;
+        int nReceiverInterrupt_backup = Main.getReceiver().getnReceiverInterrupt();
         if (nReceiverInterrupt_backup != -1) {
-            this.disableReceive();
+            Main.getReceiver().disableReceive();
         }
     //#endif
 
@@ -177,7 +180,7 @@ class RadioTransmitter
     //#if not defined( RCSwitchDisableReceiving )
         // enable receiver again if we just disabled it
         if (nReceiverInterrupt_backup != -1) {
-            this.enableReceive(nReceiverInterrupt_backup);
+            Main.getReceiver().enableReceive(nReceiverInterrupt_backup);
         }
     //#endif
     }
@@ -187,13 +190,13 @@ class RadioTransmitter
      */
     void transmit(HighLow pulses)
     {
-        byte /*uint8_t*/ firstLogicLevel = (this.protocol.invertedSignal) ? LOW : HIGH;
-        byte /*uint8_t*/ secondLogicLevel = (this.protocol.invertedSignal) ? HIGH : LOW;
+        PinState firstLogicLevel = (this.protocol.invertedSignal) ? PinState.LOW : PinState.HIGH;
+        PinState secondLogicLevel = (this.protocol.invertedSignal) ? PinState.HIGH : PinState.LOW;
 
-        digitalWrite(this.nTransmitterPin, firstLogicLevel);
-        delayMicroseconds( this.protocol.pulseLength * pulses.high);
-        digitalWrite(this.nTransmitterPin, secondLogicLevel);
-        delayMicroseconds( this.protocol.pulseLength * pulses.low);
+        this.transmitterPin.setState( firstLogicLevel);
+        Gpio.delayMicroseconds( this.protocol.pulseLength * pulses.high);
+        this.transmitterPin.setState(secondLogicLevel);
+        Gpio.delayMicroseconds( this.protocol.pulseLength * pulses.low);
     }
 
 //#endif
