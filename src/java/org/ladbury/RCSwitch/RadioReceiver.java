@@ -2,8 +2,7 @@ package org.ladbury.RCSwitch;
 import com.pi4j.io.gpio.*;
 import com.pi4j.io.gpio.event.GpioPinDigitalStateChangeEvent;
 import com.pi4j.io.gpio.event.GpioPinListenerDigital;
-import com.pi4j.wiringpi.GpioInterrupt;
-import org.ladbury.RCSwitch.Protocol;
+import com.pi4j.wiringpi.*;
 
 /**
  * RadioReceiver    -   class for receiving and decoding radio signals via a GPIO pin
@@ -39,7 +38,7 @@ import org.ladbury.RCSwitch.Protocol;
  * Foundation, In
  */
 
-public class RadioReceiver implements GpioPinListenerDigital
+public class RadioReceiver implements GpioPinListenerDigital,GpioInterruptListener
 {
     private int nReceiverInterrupt;
     // We can handle up to (unsigned long) => 32 bit * 2 H/L changes per bit + 2 for sync
@@ -70,11 +69,12 @@ public class RadioReceiver implements GpioPinListenerDigital
 
     public RadioReceiver(GpioPinDigitalInput receivePin)
     {
+        System.out.println("RadioReceiver constructor " + receivePin.toString());
         this.nReceiverInterrupt = -1;
         this.setReceiveTolerance(60);
         this.nReceivedValue = 0;
         this.receivePin = receivePin;
-        this.pinNumber = Integer.parseInt(receivePin.getPin().getName());
+        this.pinNumber = Integer.parseInt(receivePin.getPin().getName().substring(5));
         //this.receivePin.addListener(this);
     }
 
@@ -83,6 +83,7 @@ public class RadioReceiver implements GpioPinListenerDigital
      */
     public void enableReceive(int interrupt)
     {
+        System.out.println("enableReceive: "+ interrupt);
         this.nReceiverInterrupt = interrupt;
         enableReceive();
     }
@@ -95,6 +96,9 @@ public class RadioReceiver implements GpioPinListenerDigital
             nReceivedBitLength = 0;
             //#if defined(RaspberryPi) // Raspberry Pi
             this.receivePin.addListener(this);
+            System.out.println("Listener added");
+            //GpioInterrupt.addListener(this::pinStateChange); //GJW
+            //GpioUtil.setEdgeDetection(pinNumber, GpioUtil.EDGE_BOTH); //GJW
             //wiringPiISR(this.nReceiverInterrupt, INT_EDGE_BOTH, &handleInterrupt);
             //#else // Arduino
             //attachInterrupt(this.nReceiverInterrupt, handleInterrupt, CHANGE);
@@ -107,11 +111,12 @@ public class RadioReceiver implements GpioPinListenerDigital
      */
     public void disableReceive()
     {
+        System.out.println("disableReceive: ");
         //#if not defined(RaspberryPi) // Arduino
         //detachInterrupt(this.nReceiverInterrupt);
-        GpioInterrupt.disablePinStateChangeCallback(pinNumber);
+        //GpioInterrupt.disablePinStateChangeCallback(pinNumber);
         //#endif // For Raspberry Pi (wiringPi) you can't unregister the ISR
-        this.nReceiverInterrupt = -1;
+        //this.nReceiverInterrupt = -1;
     }
 
     // getters
@@ -203,11 +208,19 @@ public class RadioReceiver implements GpioPinListenerDigital
     @Override
     public void handleGpioPinDigitalStateChangeEvent(GpioPinDigitalStateChangeEvent event) {
         this.event = event;
+        System.out.println(event.toString());
         handleInterrupt();
     }
 
+    @Override
+    public void pinStateChange(GpioInterruptEvent event)
+    {
+        //this.event = event;
+        System.out.println(event.toString());
+        handleInterrupt();
+    }
 
-    void /*RECEIVE_ATTR*/ handleInterrupt()
+    private void /*RECEIVE_ATTR*/ handleInterrupt()
     {
         final long time = System.nanoTime()/1000; //micros();
         final /*unsigned*/ int duration = (int)(time - lastTime);

@@ -152,6 +152,4 @@ public class SwitchControl
     {
         CodeWords.sendTriState( CodeWords.getCodeWordA(sGroup, sDevice, false) );
     }
-
-
 }

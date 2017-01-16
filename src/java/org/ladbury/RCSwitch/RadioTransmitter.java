@@ -46,7 +46,7 @@ public class RadioTransmitter
     {
         this.transmitterPin = transmitterPin;
         transmitterPin.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
-        this.nTransmitterPin = Integer.parseInt(transmitterPin.getPin().getName());
+        this.nTransmitterPin = Integer.parseInt(transmitterPin.getPin().getName().substring(5));
         this.setRepeatTransmit(10);
         this.setProtocol(1);
     }
@@ -153,7 +153,7 @@ public class RadioTransmitter
         // make sure the receiver is disabled while we transmit
         int nReceiverInterrupt_backup = Main.getReceiver().getnReceiverInterrupt();
         if (nReceiverInterrupt_backup != -1) {
-            Main.getReceiver().disableReceive();
+            //Main.getReceiver().disableReceive();
         }
     //#endif
 
@@ -168,7 +168,7 @@ public class RadioTransmitter
         }
         // enable receiver again if we just disabled it
         if (nReceiverInterrupt_backup != -1) {
-            Main.getReceiver().enableReceive(nReceiverInterrupt_backup);
+            //Main.getReceiver().enableReceive(nReceiverInterrupt_backup);
         }
     }
 

@@ -7,8 +7,11 @@ import com.beust.jcommander.ParameterException;
 import com.pi4j.io.gpio.GpioController;
 import com.pi4j.io.gpio.GpioFactory;
 import com.pi4j.io.gpio.RaspiPin;
+import com.pi4j.io.gpio.PinPullResistance;
+import org.ladbury.RCSwitch.Protocol;
 import org.ladbury.RCSwitch.RadioReceiver;
 import org.ladbury.RCSwitch.RadioTransmitter;
+import org.ladbury.RCSwitch.SwitchControl;
 
 import java.util.concurrent.TimeUnit;
 
@@ -52,10 +55,10 @@ private static SocketControl s;
 
     public static void main(String[] args)
     {
-        Main main = new Main();
+        Main.main = new Main();
         main.jc = new JCommander(main,args);
         main.numberArgs = args.length;
-        main.run();
+        main.actionArguments();
     }
 
     private static void demo()
@@ -93,14 +96,16 @@ private static SocketControl s;
         }
         if (testRR)
         {
-            radioReceiver = new RadioReceiver(gpio.provisionDigitalInputPin(RaspiPin.GPIO_25,"Receiver Pin"));
+            //tried ,PinPullResistance.PULL_DOWN no difference
+            radioReceiver = new RadioReceiver(gpio.provisionDigitalInputPin(RaspiPin.GPIO_26,"Receiver Pin"));
             Thread mainThread = new Thread(this);
-            mainThread.run();
-            radioReceiver.enableReceive(1);
+            radioReceiver.enableReceive(26);
             System.out.println("Receiver started");
+            mainThread.start();
+            transmitTestPattern();
             try
             {
-                TimeUnit.SECONDS.sleep(120);
+                TimeUnit.SECONDS.sleep(30);
             } catch (InterruptedException e)
             {
                 e.printStackTrace();
@@ -110,16 +115,51 @@ private static SocketControl s;
         }
         if (testRT)
         {
-            this.radioTransmitter = new RadioTransmitter(gpio.provisionDigitalOutputPin(RaspiPin.GPIO_27,"Transmitter Pin"));
+            this.radioTransmitter = new RadioTransmitter(gpio.provisionDigitalOutputPin(RaspiPin.GPIO_13,"Transmitter Pin"));
         }
         gpio.shutdown();
         System.exit(0);
     }
+    void pause()
+    {
+        try
+        {
+            TimeUnit.SECONDS.sleep(2);
+        } catch (InterruptedException e)
+        {
+            e.printStackTrace();
+        }
+
+    }
+    void transmitTestPattern()
+    {
+        this.radioTransmitter = new RadioTransmitter(gpio.provisionDigitalOutputPin(RaspiPin.GPIO_13,"Transmitter Pin"));
+        radioTransmitter.setProtocol(Protocol.protocol1);
+        radioTransmitter.enableTransmit(13);
+        SwitchControl sc = new SwitchControl();
+        sc.switchOn(3,3);
+        pause();
+        sc.switchOff(3,3);
+        pause();
+        sc.switchOn(3,3);
+        pause();
+        sc.switchOff(3,3);
+        pause();
+        sc.switchOn(3,3);
+        pause();
+        sc.switchOn(3,3);
+        pause();
+    }
+
     @Override
     public void run()
     {
-        while(radioReceiver.getnReceiverInterrupt()>=0)
+        int loopCount = 0;
+        System.out.println("Run called");
+        while(loopCount<200)//radioReceiver.getnReceiverInterrupt()>=0
         {
+            loopCount++;
+            System.out.println("while: "+loopCount);
             if(radioReceiver.available())
             {
                 System.out.println( "Received: "+ radioReceiver.getReceivedValue()+
@@ -128,15 +168,16 @@ private static SocketControl s;
                                     " Protocol: "+radioReceiver.getReceivedProtocol().name());
                 radioReceiver.resetAvailable();
             }
+            else System.out.println("Not Available");
             try
             {
-                TimeUnit.MILLISECONDS.sleep(500);
+                TimeUnit.MILLISECONDS.sleep(100);
             } catch (InterruptedException e)
             {
                 e.printStackTrace();
             }
+            if(loopCount>100) break;
         }
-
     }
     @Override
     public void validate(String name, String value) throws ParameterException

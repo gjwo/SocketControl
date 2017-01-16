@@ -122,7 +122,7 @@
                                 <sshexec host="${pi.host}" port="${pi.port}" username="${pi.user}"
                                          password="${pi.password}" trust="true" failonerror="false"
                                          verbose="false"
-                                         command="sudo java -jar ${pi.deployDirectory}/${project.build.finalName}.jar -h" />
+                                         command="sudo java -jar ${pi.deployDirectory}/${project.build.finalName}.jar -trr" />
                             </target>
 
                         </configuration>
