@@ -97,9 +97,9 @@ private static SocketControl s;
         if (testRR)
         {
             //tried ,PinPullResistance.PULL_DOWN no difference
-            radioReceiver = new RadioReceiver(gpio.provisionDigitalInputPin(RaspiPin.GPIO_26,"Receiver Pin"));
+            radioReceiver = new RadioReceiver(gpio.provisionDigitalInputPin(RaspiPin.GPIO_25,"Receiver Pin"));
             Thread mainThread = new Thread(this);
-            radioReceiver.enableReceive(26);
+            radioReceiver.enableReceive(25);
             System.out.println("Receiver started");
             mainThread.start();
             transmitTestPattern();
@@ -115,7 +115,7 @@ private static SocketControl s;
         }
         if (testRT)
         {
-            this.radioTransmitter = new RadioTransmitter(gpio.provisionDigitalOutputPin(RaspiPin.GPIO_13,"Transmitter Pin"));
+            this.radioTransmitter = new RadioTransmitter(gpio.provisionDigitalOutputPin(RaspiPin.GPIO_23,"Transmitter Pin"));
         }
         gpio.shutdown();
         System.exit(0);
@@ -159,7 +159,7 @@ private static SocketControl s;
         while(loopCount<200)//radioReceiver.getnReceiverInterrupt()>=0
         {
             loopCount++;
-            System.out.println("while: "+loopCount);
+            System.out.print("while: "+loopCount+" ");
             if(radioReceiver.available())
             {
                 System.out.println( "Received: "+ radioReceiver.getReceivedValue()+
@@ -168,10 +168,10 @@ private static SocketControl s;
                                     " Protocol: "+radioReceiver.getReceivedProtocol().name());
                 radioReceiver.resetAvailable();
             }
-            else System.out.println("Not Available");
+            else System.out.println("Not Available, " +radioReceiver.getInterruptCount()+" interrupts" );
             try
             {
-                TimeUnit.MILLISECONDS.sleep(100);
+                TimeUnit.MILLISECONDS.sleep(500);
             } catch (InterruptedException e)
             {
                 e.printStackTrace();

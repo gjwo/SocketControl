@@ -55,6 +55,7 @@ public class RadioReceiver implements GpioPinListenerDigital,GpioInterruptListen
     private final int pinNumber;
     private final GpioPinDigitalInput receivePin;
     private volatile GpioPinDigitalStateChangeEvent event;
+    private volatile long interruptCount;
 
     // variables used by interrupt handler code, which persist between interrupts
     private /*unsigned*/ int changeCount = 0;
@@ -70,6 +71,7 @@ public class RadioReceiver implements GpioPinListenerDigital,GpioInterruptListen
     public RadioReceiver(GpioPinDigitalInput receivePin)
     {
         System.out.println("RadioReceiver constructor " + receivePin.toString());
+        this.interruptCount =0;
         this.nReceiverInterrupt = -1;
         this.setReceiveTolerance(60);
         this.nReceivedValue = 0;
@@ -126,6 +128,7 @@ public class RadioReceiver implements GpioPinListenerDigital,GpioInterruptListen
     public /*unsigned*/ int getReceivedDelay(){return nReceivedDelay;}
     public /*unsigned*/ Protocol getReceivedProtocol(){return protocol;}
     public /*unsigned*/ int[] getReceivedRawData(){return timings;}
+    public long getInterruptCount(){return interruptCount;}
     public int getnReceiverInterrupt()
     {
         return nReceiverInterrupt;
@@ -208,7 +211,8 @@ public class RadioReceiver implements GpioPinListenerDigital,GpioInterruptListen
     @Override
     public void handleGpioPinDigitalStateChangeEvent(GpioPinDigitalStateChangeEvent event) {
         this.event = event;
-        System.out.println(event.toString());
+        interruptCount++;
+        //System.out.println(event.toString());
         handleInterrupt();
     }
 
@@ -216,7 +220,7 @@ public class RadioReceiver implements GpioPinListenerDigital,GpioInterruptListen
     public void pinStateChange(GpioInterruptEvent event)
     {
         //this.event = event;
-        System.out.println(event.toString());
+        //System.out.println(event.toString());
         handleInterrupt();
     }
 
