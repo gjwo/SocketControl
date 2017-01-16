@@ -1,4 +1,4 @@
-package org.ladbury.sockets;
+package org.ladbury.RCSwitch;
 
  /**
  * ported to java for Raspberry Pi by GJWood on 14/01/2017.
@@ -57,7 +57,7 @@ package org.ladbury.sockets;
  *    { 500, {  6, 14 }, {  1,  2 }, {  2,  1 }, false },    // protocol 5
  *    { 450, { 23,  1 }, {  1,  2 }, {  2,  1 }, true }      // protocol 6 (HT6P20B)
  */
-enum Protocol
+public enum Protocol
 {
     protocol1 (1,350,1,31,1,3,3,1,false ),
     protocol2 (2,650,1,10,1,2,2,1,false),
@@ -66,12 +66,12 @@ enum Protocol
     protocol5 (5,500,6,14,1,2,2,1,false ),
     protocol6 (6,450,23,1,1,2,2,1,true ); // (HT6P20B)
 
-    final int protocolNumber;
-    final int pulseLength;
-    final HighLow syncFactor;
-    final HighLow zero;
-    final HighLow one;
-    final boolean invertedSignal; //if true inverts the high and low logic levels in the HighLow structs
+    public final int protocolNumber;
+    public final int pulseLength;
+    public final HighLow syncFactor;
+    public final HighLow zero;
+    public final HighLow one;
+    public final boolean invertedSignal; //if true inverts the high and low logic levels in the HighLow structs
 
     Protocol(int n,int l, int sfh, int sfl, int zh, int zl, int oh, int ol, boolean inv)
     {
@@ -82,4 +82,11 @@ enum Protocol
         this.one = new HighLow((byte)oh, (byte) ol);
         this.invertedSignal = inv;
     }
+
+    public static class HighLow {
+            public final byte high;
+            public final byte low;
+
+            HighLow( byte h, byte l){high = h;low = l;}
+        }
 }

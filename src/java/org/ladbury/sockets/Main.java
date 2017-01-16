@@ -7,6 +7,8 @@ import com.beust.jcommander.ParameterException;
 import com.pi4j.io.gpio.GpioController;
 import com.pi4j.io.gpio.GpioFactory;
 import com.pi4j.io.gpio.RaspiPin;
+import org.ladbury.RCSwitch.RadioReceiver;
+import org.ladbury.RCSwitch.RadioTransmitter;
 
 import java.util.concurrent.TimeUnit;
 

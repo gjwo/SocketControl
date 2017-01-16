@@ -1,4 +1,6 @@
-package org.ladbury.sockets;
+package org.ladbury.RCSwitch;
+
+import org.ladbury.RCSwitch.CodeWords;
 
 /**
  * ported to java for Raspberry Pi by GJWood on 14/01/2017.

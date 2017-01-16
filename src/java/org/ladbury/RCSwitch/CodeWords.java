@@ -1,4 +1,6 @@
-package org.ladbury.sockets;
+package org.ladbury.RCSwitch;
+
+import org.ladbury.sockets.Main;
 
 class CodeWord
 {
@@ -60,13 +62,13 @@ enum TriState {zero,one,floating}
  * Foundation, In
  */
 
-class CodeWords
+public class CodeWords
 {
 
     /**
      * @param cw   a tristate code word consisting of the letter 0, 1, F
      */
-    static void sendTriState(CodeWord cw)
+    public static void sendTriState(CodeWord cw)
     {
         if(!cw.isValid()) return;
         // turn the tristate code word into the corresponding bit pattern, then send it
@@ -106,7 +108,7 @@ class CodeWords
      *
      * @return char[13], representing a tristate code word of length 12
      */
-    static CodeWord getCodeWordA(String sGroup, String sDevice, boolean bStatus)
+    public static CodeWord getCodeWordA(String sGroup, String sDevice, boolean bStatus)
     {
         CodeWord cw = new CodeWord();
         cw.setValid(false);
@@ -140,7 +142,7 @@ class CodeWords
      *
      * @return char[13], representing a tristate code word of length 12
      */
-    static CodeWord  getCodeWordB(int nAddressCode, int nChannelCode, boolean bStatus)
+    public static CodeWord  getCodeWordB(int nAddressCode, int nChannelCode, boolean bStatus)
     {
         CodeWord cw = new CodeWord();
         cw.setValid(false);
@@ -176,7 +178,7 @@ class CodeWords
      * @param bStatus   true = on false = off
      * @return          The CodeWord command for the device
      */
-    static CodeWord getCodeWordC(char sFamily, int nGroup, int nDevice, boolean bStatus)
+    public static CodeWord getCodeWordC(char sFamily, int nGroup, int nDevice, boolean bStatus)
     {
         CodeWord cw = new CodeWord();
         cw.setValid(false);
@@ -226,7 +228,7 @@ class CodeWords
      *
      * @return char[13], representing a tristate code word of length 12
      */
-    static CodeWord getCodeWordD(char sGroup, int nDevice, boolean bStatus)
+    public static CodeWord getCodeWordD(char sGroup, int nDevice, boolean bStatus)
     {
         CodeWord cw = new CodeWord();
         cw.setValid(false);

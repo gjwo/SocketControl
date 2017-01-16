@@ -1,8 +1,9 @@
-package org.ladbury.sockets;
+package org.ladbury.RCSwitch;
 import com.pi4j.io.gpio.*;
 import com.pi4j.io.gpio.event.GpioPinDigitalStateChangeEvent;
 import com.pi4j.io.gpio.event.GpioPinListenerDigital;
 import com.pi4j.wiringpi.GpioInterrupt;
+import org.ladbury.RCSwitch.Protocol;
 
 /**
  * RadioReceiver    -   class for receiving and decoding radio signals via a GPIO pin
@@ -67,7 +68,7 @@ public class RadioReceiver implements GpioPinListenerDigital
     // limit to the same time as the 'low' part of the sync signal for the current protocol.
     private/*unsigned*/ final int[] timings = new int[RCSWITCH_MAX_CHANGES];
 
-    RadioReceiver(GpioPinDigitalInput receivePin)
+    public RadioReceiver(GpioPinDigitalInput receivePin)
     {
         this.nReceiverInterrupt = -1;
         this.setReceiveTolerance(60);
@@ -80,13 +81,13 @@ public class RadioReceiver implements GpioPinListenerDigital
     /**
      * Enable receiving data
      */
-    void enableReceive(int interrupt)
+    public void enableReceive(int interrupt)
     {
         this.nReceiverInterrupt = interrupt;
         enableReceive();
     }
 
-    void enableReceive()
+    public void enableReceive()
     {
         if (this.nReceiverInterrupt != -1)
         {
@@ -104,7 +105,7 @@ public class RadioReceiver implements GpioPinListenerDigital
     /**
      * Disable receiving data
      */
-    void disableReceive()
+    public void disableReceive()
     {
         //#if not defined(RaspberryPi) // Arduino
         //detachInterrupt(this.nReceiverInterrupt);
@@ -114,24 +115,24 @@ public class RadioReceiver implements GpioPinListenerDigital
     }
 
     // getters
-    boolean available(){return nReceivedValue != 0;}
-    /*unsigned*/ long getReceivedValue(){return nReceivedValue;}
-    /*unsigned*/ int getReceivedBitLength(){return nReceivedBitLength;}
-    /*unsigned*/ int getReceivedDelay(){return nReceivedDelay;}
-    /*unsigned*/ Protocol getReceivedProtocol(){return protocol;}
-    /*unsigned*/ int[] getReceivedRawData(){return timings;}
+    public boolean available(){return nReceivedValue != 0;}
+    public /*unsigned*/ long getReceivedValue(){return nReceivedValue;}
+    public /*unsigned*/ int getReceivedBitLength(){return nReceivedBitLength;}
+    public /*unsigned*/ int getReceivedDelay(){return nReceivedDelay;}
+    public /*unsigned*/ Protocol getReceivedProtocol(){return protocol;}
+    public /*unsigned*/ int[] getReceivedRawData(){return timings;}
     public int getnReceiverInterrupt()
     {
         return nReceiverInterrupt;
     }
 
     // setters
-    void resetAvailable(){nReceivedValue = 0;}
+    public void resetAvailable(){nReceivedValue = 0;}
 
     /**
      * Set Receiving Tolerance
      */
-    void setReceiveTolerance(int nPercent)
+    public void setReceiveTolerance(int nPercent)
     {
         //#if not defined( RCSwitchDisableReceiving )
         nReceiveTolerance = nPercent;

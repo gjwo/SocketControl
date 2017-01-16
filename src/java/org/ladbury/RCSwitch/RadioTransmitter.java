@@ -1,6 +1,8 @@
-package org.ladbury.sockets;
+package org.ladbury.RCSwitch;
 import com.pi4j.io.gpio.*;
 import com.pi4j.wiringpi.Gpio;
+import org.ladbury.RCSwitch.Protocol;
+import org.ladbury.sockets.Main;
 
 /**
  * ported to java for Raspberry Pi by GJWood on 14/01/2017.
@@ -33,22 +35,14 @@ import com.pi4j.wiringpi.Gpio;
  * License along with this library; if not, write to the Free Software
  * Foundation, In
  */
-
-    class HighLow {
-        final byte high;
-        final byte low;
-
-        HighLow( byte h, byte l){high = h;low = l;}
-    }
-
-class RadioTransmitter
+public class RadioTransmitter
 {
     private Protocol protocol;
     private int nRepeatTransmit;
     private int nTransmitterPin;
     final private GpioPinDigitalOutput transmitterPin;
 
-    RadioTransmitter(GpioPinDigitalOutput transmitterPin)
+    public RadioTransmitter(GpioPinDigitalOutput transmitterPin)
     {
         this.transmitterPin = transmitterPin;
         transmitterPin.setShutdownOptions(true, PinState.LOW, PinPullResistance.OFF);
@@ -62,7 +56,7 @@ class RadioTransmitter
      * setProtocol  -   Sets the protocol to send.
      * @param protocol  protocol type, see Protocol class
      */
-    void setProtocol(Protocol protocol)
+    public void setProtocol(Protocol protocol)
     {
         this.protocol = protocol;
     }
@@ -71,7 +65,7 @@ class RadioTransmitter
      * setProtocol  -   Sets the protocol to send, from a list of predefined protocols
      * &param nProtocol the protocol number 1-6
      */
-    void setProtocol(int nProtocol) 
+    public void setProtocol(int nProtocol)
     {
         for(Protocol p: Protocol.values())
         {
@@ -85,7 +79,7 @@ class RadioTransmitter
     /**
      * Sets the protocol to send with pulse length in microseconds.
      */
-    void setProtocol(int nProtocol, int nPulseLength)
+    public void setProtocol(int nProtocol, int nPulseLength)
     {
         setProtocol(nProtocol);
         this.setPulseLength(nPulseLength);
@@ -95,7 +89,7 @@ class RadioTransmitter
     /**
      * Sets pulse length in microseconds
      */
-    void setPulseLength(int nPulseLength)
+    public void setPulseLength(int nPulseLength)
     {
         // TODO this.protocol.pulseLength = nPulseLength;
     }
@@ -103,7 +97,7 @@ class RadioTransmitter
     /**
      * Sets Repeat Transmits
      */
-    void setRepeatTransmit(int nRepeatTransmit)
+    public void setRepeatTransmit(int nRepeatTransmit)
     {
         this.nRepeatTransmit = nRepeatTransmit;
     }
@@ -113,7 +107,7 @@ class RadioTransmitter
      *
      * @param nTransmitterPin    Arduino Pin to which the sender is connected to
      */
-    void enableTransmit(int nTransmitterPin)
+    public void enableTransmit(int nTransmitterPin)
     {
         // set up in constructor
         //this.nTransmitterPin = nTransmitterPin;
@@ -123,7 +117,7 @@ class RadioTransmitter
     /**
      * Disable transmissions
      */
-    void disableTransmit()
+    public void disableTransmit()
     {
         this.nTransmitterPin = -1;
     }
@@ -131,7 +125,7 @@ class RadioTransmitter
     /**
      * @param sCodeWord   a binary code word consisting of the letter 0, 1
      */
-    void send(final String sCodeWord)
+    public void send(final String sCodeWord)
     {
         // turn the tristate code word into the corresponding bit pattern, then send it
         /*unsigned*/ long code = 0;
@@ -150,7 +144,7 @@ class RadioTransmitter
      * bits are sent from MSB to LSB, i.e., first the bit at position length-1,
      * then the bit at position length-2, and so on, till finally the bit at position 0.
      */
-    void send(/*unsigned*/ long code, /*unsigned*/ int length)
+    public void send(/*unsigned*/ long code, /*unsigned*/ int length)
     {
         if (this.nTransmitterPin == -1)
         return;
@@ -181,7 +175,7 @@ class RadioTransmitter
     /**
      * Transmit a single high-low pulse.
      */
-    void transmit(HighLow pulses)
+    public void transmit(Protocol.HighLow pulses)
     {
         PinState firstLogicLevel = (this.protocol.invertedSignal) ? PinState.LOW : PinState.HIGH;
         PinState secondLogicLevel = (this.protocol.invertedSignal) ? PinState.HIGH : PinState.LOW;
