@@ -43,22 +43,24 @@ public class RadioReceiver implements GpioPinListenerDigital
     private int nReceiverInterrupt;
     // We can handle up to (unsigned long) => 32 bit * 2 H/L changes per bit + 2 for sync
     private final int RCSWITCH_MAX_CHANGES =67;
+
     private/*unsigned*/ long nReceivedValue = 0;
     private/*unsigned*/ int nReceivedBitLength = 0;
     private/*unsigned*/ int nReceivedDelay = 0;
-    private/*unsigned*/ int nReceivedProtocol = 0;
     private Protocol protocol;
     private int nReceiveTolerance = 60;
     private final /*unsigned*/ int nSeparationLimit = 4300;
     private final int numProto = 6;
 
     private final int pinNumber;
-    public int getnReceiverInterrupt()
-    {
-        return nReceiverInterrupt;
-    }
     private final GpioPinDigitalInput receivePin;
     private volatile GpioPinDigitalStateChangeEvent event;
+
+    // variables used by interrupt handler code, which persist between interrupts
+    private /*unsigned*/ int changeCount = 0;
+    private /*unsigned*/ long lastTime = 0;
+    private /*unsigned*/ int repeatCount = 0;
+
 
     // separationLimit: minimum microseconds between received codes, closer codes are ignored.
     // according to discussion on issue //#14 it might be more suitable to set the separation
@@ -75,20 +77,19 @@ public class RadioReceiver implements GpioPinListenerDigital
         //this.receivePin.addListener(this);
     }
 
-
-    //#if not defined( RCSwitchDisableReceiving )
     /**
      * Enable receiving data
      */
     void enableReceive(int interrupt)
     {
         this.nReceiverInterrupt = interrupt;
-        this.enableReceive();
+        enableReceive();
     }
 
     void enableReceive()
     {
-        if (this.nReceiverInterrupt != -1) {
+        if (this.nReceiverInterrupt != -1)
+        {
             nReceivedValue = 0;
             nReceivedBitLength = 0;
             //#if defined(RaspberryPi) // Raspberry Pi
@@ -117,8 +118,12 @@ public class RadioReceiver implements GpioPinListenerDigital
     /*unsigned*/ long getReceivedValue(){return nReceivedValue;}
     /*unsigned*/ int getReceivedBitLength(){return nReceivedBitLength;}
     /*unsigned*/ int getReceivedDelay(){return nReceivedDelay;}
-    /*unsigned*/ int getReceivedProtocol(){return nReceivedProtocol;}
+    /*unsigned*/ Protocol getReceivedProtocol(){return protocol;}
     /*unsigned*/ int[] getReceivedRawData(){return timings;}
+    public int getnReceiverInterrupt()
+    {
+        return nReceiverInterrupt;
+    }
 
     // setters
     void resetAvailable(){nReceivedValue = 0;}
@@ -138,19 +143,12 @@ public class RadioReceiver implements GpioPinListenerDigital
 
     /**
      * receiveProtocol
-     * @param pn            -   Protocol number
-     * @param changeCount   - ?
-     * @return              - true if ...
+     * @param protocol      -   Protocol to try
+     * @param changeCount   -   Number of state changes in the message
+     * @return              -   true if using this protocol decoded a message
      */
-    boolean /*RECEIVE_ATTR*/ receiveProtocol(final int pn, /*unsigned*/ int changeCount)
+    boolean /*RECEIVE_ATTR*/ receiveProtocol(Protocol protocol, /*unsigned*/ int changeCount)
     {
-        this.protocol = Protocol.protocol1;
-        for(Protocol pr: Protocol.values())
-        {
-            if (pr.protocolNumber == pn){ this.protocol = pr; break;}
-        }
-
-
         /*unsigned*/ long code = 0;
         //Assuming the longer pulse length is the pulse captured in timings[0]
         final /*unsigned*/ int syncLengthInPulses =  ((protocol.syncFactor.low) > (protocol.syncFactor.high)) ? (protocol.syncFactor.low) : (protocol.syncFactor.high);
@@ -192,13 +190,12 @@ public class RadioReceiver implements GpioPinListenerDigital
         }
 
         if (changeCount > 7) {    // ignore very short transmissions: no device sends them, so this must be noise
-            nReceivedValue = code;
-            nReceivedBitLength = (changeCount - 1) / 2;
-            nReceivedDelay = delay;
-            nReceivedProtocol = pn;
+            this.nReceivedValue = code;
+            this.nReceivedBitLength = (changeCount - 1) / 2;
+            this.nReceivedDelay = delay;
+            this.protocol = protocol;
             return true;
         }
-
         return false;
     }
 
@@ -211,30 +208,26 @@ public class RadioReceiver implements GpioPinListenerDigital
 
     void /*RECEIVE_ATTR*/ handleInterrupt()
     {
-
-        /*static*/ /*unsigned*/ int changeCount = 0;
-        /*static*/ /*unsigned*/ long lastTime = 0;
-        /*static*/ /*unsigned*/ int repeatCount = 0;
-
         final long time = System.nanoTime()/1000; //micros();
         final /*unsigned*/ int duration = (int)(time - lastTime);
 
-        if (duration > nSeparationLimit) {
+        if (duration > nSeparationLimit)
+        {
             // A long stretch without signal level change occurred. This could
-            // be the gap between two transmission.
-            if (diff(duration, timings[0]) < 200) {
+            // be the gap between two transmissions.
+            if (diff(duration, timings[0]) < 200)
+            {
                 // This long signal is close in length to the long signal which
                 // started the previously recorded timings; this suggests that
                 // it may indeed by a a gap between two transmissions (we assume
                 // here that a sender will send the signal multiple times,
                 // with roughly the same gap between them).
                 repeatCount++;
-                if (repeatCount == 2) {
-                    for(/*unsigned*/ int i = 1; i <= numProto; i++) {
-                        if (receiveProtocol(i, changeCount)) {
-                            // receive succeeded for protocol i
-                            break;
-                        }
+                if (repeatCount == 2)
+                {
+                    for(Protocol pr: Protocol.values())
+                    {
+                        if (receiveProtocol(pr, changeCount)){break;}
                     }
                     repeatCount = 0;
                 }

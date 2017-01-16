@@ -8,6 +8,8 @@ import com.pi4j.io.gpio.GpioController;
 import com.pi4j.io.gpio.GpioFactory;
 import com.pi4j.io.gpio.RaspiPin;
 
+import java.util.concurrent.TimeUnit;
+
 @SuppressWarnings("CanBeFinal")
 public class Main implements Runnable,IParameterValidator
 {
@@ -63,10 +65,8 @@ private static SocketControl s;
         s.blinkSocket(0,3);
 
     }
-    @Override
-    public void run()
+    private void actionArguments()
     {
-
         if ((numberArgs == 0) | help)
         {
             jc.usage();
@@ -91,7 +91,20 @@ private static SocketControl s;
         }
         if (testRR)
         {
-            this.radioReceiver = new RadioReceiver(gpio.provisionDigitalInputPin(RaspiPin.GPIO_25,"Receiver Pin"));
+            radioReceiver = new RadioReceiver(gpio.provisionDigitalInputPin(RaspiPin.GPIO_25,"Receiver Pin"));
+            Thread mainThread = new Thread(this);
+            mainThread.run();
+            radioReceiver.enableReceive(1);
+            System.out.println("Receiver started");
+            try
+            {
+                TimeUnit.SECONDS.sleep(120);
+            } catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }
+            radioReceiver.disableReceive();
+            System.out.println("Receiver stopped");
         }
         if (testRT)
         {
@@ -99,6 +112,28 @@ private static SocketControl s;
         }
         gpio.shutdown();
         System.exit(0);
+    }
+    @Override
+    public void run()
+    {
+        while(radioReceiver.getnReceiverInterrupt()>=0)
+        {
+            if(radioReceiver.available())
+            {
+                System.out.println( "Received: "+ radioReceiver.getReceivedValue()+
+                                    " nBits: "+radioReceiver.getReceivedBitLength()+
+                                    " Delay: " + radioReceiver.getReceivedDelay()+
+                                    " Protocol: "+radioReceiver.getReceivedProtocol().name());
+                radioReceiver.resetAvailable();
+            }
+            try
+            {
+                TimeUnit.MILLISECONDS.sleep(500);
+            } catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }
+        }
 
     }
     @Override

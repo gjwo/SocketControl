@@ -14,7 +14,7 @@ import java.util.HashMap;
  * primitive types: boolean for on(true) or off(false), int for socket numbers -
  * 0 is all sockets, 1-4 are individual sockets.
  *
- * internally the GPIO pins are used to control the ENERGENiE Pi-mote (ENER314) board,
+ * internally the GPIO pins are used to control the ENERGENIE Pi-mote (ENER314) board,
  * this uses 6 pins for control:
  *      D0-D2 to encode socket numbers,
  *      D3 on/off,
