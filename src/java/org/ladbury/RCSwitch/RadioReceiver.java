@@ -4,6 +4,8 @@ import com.pi4j.io.gpio.event.GpioPinDigitalStateChangeEvent;
 import com.pi4j.io.gpio.event.GpioPinListenerDigital;
 import com.pi4j.wiringpi.*;
 
+import java.util.Arrays;
+
 /**
  * RadioReceiver    -   class for receiving and decoding radio signals via a GPIO pin
  *
@@ -38,39 +40,44 @@ import com.pi4j.wiringpi.*;
  * Foundation, In
  */
 
-public class RadioReceiver implements GpioPinListenerDigital,GpioInterruptListener
+public class RadioReceiver implements GpioPinListenerDigital
 {
-    private int nReceiverInterrupt;
-    // We can handle up to (unsigned long) => 32 bit * 2 H/L changes per bit + 2 for sync
-    private final int RCSWITCH_MAX_CHANGES =67;
 
+    // Protocol related variables
+    private Protocol protocol;
+    private final int RCSWITCH_MAX_CHANGES = 67;// We can handle up to (unsigned long) => 32 bit * 2 H/L changes per bit + 2 for sync
+    private int nReceiveTolerance = 60;         //percentage variation in pulse width allowed
+    private final /*unsigned*/ int nSeparationLimit = 4300; //minimum gap between transmissions
+
+    //results from decoding the protocol
+    private/*unsigned*/ int nReceivedDelay = 0; //calculated pluse length for detected protocol
     private/*unsigned*/ long nReceivedValue = 0;
     private/*unsigned*/ int nReceivedBitLength = 0;
-    private/*unsigned*/ int nReceivedDelay = 0;
-    private Protocol protocol;
-    private int nReceiveTolerance = 60;
-    private final /*unsigned*/ int nSeparationLimit = 4300;
-    private final int numProto = 6;
 
+    // Hardware interface related
     private final int pinNumber;
     private final GpioPinDigitalInput receivePin;
     private volatile GpioPinDigitalStateChangeEvent event;
-    private volatile long interruptCount;
 
     // variables used by interrupt handler code, which persist between interrupts
-    private /*unsigned*/ int changeCount = 0;
-    private /*unsigned*/ long lastTime = 0;
-    private /*unsigned*/ int repeatCount = 0;
-
+    private int nReceiverInterrupt;
+    private /*unsigned*/ int changeCount;
+    private /*unsigned*/ long lastTime;
+    private /*unsigned*/ int repeatCount;
+    private volatile long interruptCount;
 
     // separationLimit: minimum microseconds between received codes, closer codes are ignored.
     // according to discussion on issue //#14 it might be more suitable to set the separation
     // limit to the same time as the 'low' part of the sync signal for the current protocol.
-    private/*unsigned*/ final int[] timings = new int[RCSWITCH_MAX_CHANGES];
+    private/*unsigned*/ final int[] timings;
 
     public RadioReceiver(GpioPinDigitalInput receivePin)
     {
         System.out.println("RadioReceiver constructor " + receivePin.toString());
+        this.timings = new int[RCSWITCH_MAX_CHANGES];
+        this.changeCount = 0;
+        this.lastTime = 0;
+        this.repeatCount = 0;
         this.interruptCount =0;
         this.nReceiverInterrupt = -1;
         this.setReceiveTolerance(60);
@@ -114,11 +121,7 @@ public class RadioReceiver implements GpioPinListenerDigital,GpioInterruptListen
     public void disableReceive()
     {
         System.out.println("disableReceive: ");
-        //#if not defined(RaspberryPi) // Arduino
-        //detachInterrupt(this.nReceiverInterrupt);
-        //GpioInterrupt.disablePinStateChangeCallback(pinNumber);
-        //#endif // For Raspberry Pi (wiringPi) you can't unregister the ISR
-        //this.nReceiverInterrupt = -1;
+        this.receivePin.removeListener(this);
     }
 
     // getters
@@ -129,6 +132,7 @@ public class RadioReceiver implements GpioPinListenerDigital,GpioInterruptListen
     public /*unsigned*/ Protocol getReceivedProtocol(){return protocol;}
     public /*unsigned*/ int[] getReceivedRawData(){return timings;}
     public long getInterruptCount(){return interruptCount;}
+    public void resetInterruptCount(){interruptCount=0;}
     public int getnReceiverInterrupt()
     {
         return nReceiverInterrupt;
@@ -183,15 +187,16 @@ public class RadioReceiver implements GpioPinListenerDigital,GpioInterruptListen
          */
         final /*unsigned*/ int firstDataTiming = (protocol.invertedSignal) ? (2) : (1);
 
-        for (/*unsigned*/ int i = firstDataTiming; i < changeCount - 1; i += 2) {
-            code <<= 1;
+        for (/*unsigned*/ int i = firstDataTiming; i < changeCount - 1; i += 2)
+        {
+            code <<= 1; //shift a zero into the least significant bit of the code
             if (diff(timings[i], delay * protocol.zero.high) < delayTolerance &&
                     diff(timings[i + 1], delay * protocol.zero.low) < delayTolerance) {
-                // zero
+                // zero - already done
             } else if (diff(timings[i], delay * protocol.one.high) < delayTolerance &&
                     diff(timings[i + 1], delay * protocol.one.low) < delayTolerance) {
                 // one
-                code |= 1;
+                code |= 1; //change the 0 to a 1
             } else {
                 // Failed
                 return false;
@@ -203,6 +208,7 @@ public class RadioReceiver implements GpioPinListenerDigital,GpioInterruptListen
             this.nReceivedBitLength = (changeCount - 1) / 2;
             this.nReceivedDelay = delay;
             this.protocol = protocol;
+            System.out.println("Protocol: "+protocol.name()+ " Code: "+code);
             return true;
         }
         return false;
@@ -212,14 +218,6 @@ public class RadioReceiver implements GpioPinListenerDigital,GpioInterruptListen
     public void handleGpioPinDigitalStateChangeEvent(GpioPinDigitalStateChangeEvent event) {
         this.event = event;
         interruptCount++;
-        //System.out.println(event.toString());
-        handleInterrupt();
-    }
-
-    @Override
-    public void pinStateChange(GpioInterruptEvent event)
-    {
-        //this.event = event;
         //System.out.println(event.toString());
         handleInterrupt();
     }
@@ -241,7 +239,8 @@ public class RadioReceiver implements GpioPinListenerDigital,GpioInterruptListen
                 // here that a sender will send the signal multiple times,
                 // with roughly the same gap between them).
                 repeatCount++;
-                if (repeatCount == 2)
+                System.out.println("hI "+repeatCount+" "+changeCount+" "+Arrays.toString(timings));
+                if (repeatCount == 1) //was 2 looks like garage controller only sends once
                 {
                     for(Protocol pr: Protocol.values())
                     {
@@ -252,13 +251,12 @@ public class RadioReceiver implements GpioPinListenerDigital,GpioInterruptListen
             }
             changeCount = 0;
         }
-
         // detect overflow
         if (changeCount >= RCSWITCH_MAX_CHANGES) {
+            //System.out.println("overflow");
             changeCount = 0;
             repeatCount = 0;
         }
-
         timings[changeCount++] = duration;
         lastTime = time;
     }

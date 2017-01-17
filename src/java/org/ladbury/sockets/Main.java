@@ -97,7 +97,7 @@ private static SocketControl s;
         if (testRR)
         {
             //tried ,PinPullResistance.PULL_DOWN no difference
-            radioReceiver = new RadioReceiver(gpio.provisionDigitalInputPin(RaspiPin.GPIO_25,"Receiver Pin"));
+            radioReceiver = new RadioReceiver(gpio.provisionDigitalInputPin(RaspiPin.GPIO_25,"Receiver Pin",PinPullResistance.PULL_DOWN));
             Thread mainThread = new Thread(this);
             radioReceiver.enableReceive(25);
             System.out.println("Receiver started");
@@ -159,7 +159,7 @@ private static SocketControl s;
         while(loopCount<200)//radioReceiver.getnReceiverInterrupt()>=0
         {
             loopCount++;
-            System.out.print("while: "+loopCount+" ");
+            //System.out.print("while: "+loopCount+" ");
             if(radioReceiver.available())
             {
                 System.out.println( "Received: "+ radioReceiver.getReceivedValue()+
@@ -168,7 +168,8 @@ private static SocketControl s;
                                     " Protocol: "+radioReceiver.getReceivedProtocol().name());
                 radioReceiver.resetAvailable();
             }
-            else System.out.println("Not Available, " +radioReceiver.getInterruptCount()+" interrupts" );
+            //else System.out.println("Not Available, " +radioReceiver.getInterruptCount()+" interrupts" );
+            radioReceiver.resetInterruptCount();
             try
             {
                 TimeUnit.MILLISECONDS.sleep(500);
