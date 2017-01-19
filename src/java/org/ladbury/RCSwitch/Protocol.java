@@ -65,7 +65,7 @@ public enum Protocol
     protocol4 (4,380,1,6,1,3,3,1,false ),
     protocol5 (5,500,6,14,1,2,2,1,false ),
     protocol6 (6,450,23,1,1,2,2,1,true ), // (HT6P20B)
-    protocol7 (7,600,36,1,1,2,2,1,true); // garage door controller
+    protocol7 (7,590,36,1,1,2,2,1,true); // garage door controller
 
     public final int protocolNumber;
     public final int pulseLength;

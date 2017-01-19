@@ -12,6 +12,7 @@ import org.ladbury.RCSwitch.Protocol;
 import org.ladbury.RCSwitch.RadioReceiver;
 import org.ladbury.RCSwitch.RadioTransmitter;
 import org.ladbury.RCSwitch.SwitchControl;
+import org.ladbury.RF433.Receiver;
 
 import java.util.concurrent.TimeUnit;
 
@@ -42,6 +43,7 @@ public class Main implements Runnable,IParameterValidator
     private final GpioController gpio;
     private RadioReceiver radioReceiver;
     private RadioTransmitter radioTransmitter;
+    private Receiver receiver;
 
 private static SocketControl s;
 
@@ -94,6 +96,7 @@ private static SocketControl s;
             TestRCSwitch tt = new TestRCSwitch();
             tt.test1();
         }
+        /*
         if (testRR)
         {
             //tried ,PinPullResistance.PULL_DOWN no difference
@@ -113,11 +116,36 @@ private static SocketControl s;
             radioReceiver.disableReceive();
             System.out.println("Receiver stopped");
         }
+        */
+        if (testRR)
+        {
+            receiver = new Receiver(gpio.provisionDigitalInputPin(RaspiPin.GPIO_25,"Receiver Pin",PinPullResistance.PULL_DOWN));
+            System.out.println("Receiver started");
+            try
+            {
+                TimeUnit.SECONDS.sleep(30);
+            } catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }
+            System.out.println("Stopping receiver");
+            receiver.disableReceive();
+            try
+            {
+                TimeUnit.SECONDS.sleep(2);
+            } catch (InterruptedException e)
+            {
+                e.printStackTrace();
+            }
+            receiver.disableReceive();
+        }
         if (testRT)
         {
             this.radioTransmitter = new RadioTransmitter(gpio.provisionDigitalOutputPin(RaspiPin.GPIO_23,"Transmitter Pin"));
         }
         gpio.shutdown();
+
+        System.out.println("Application Shutdown");
         System.exit(0);
     }
     void pause()
