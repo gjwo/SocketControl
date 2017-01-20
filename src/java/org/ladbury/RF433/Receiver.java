@@ -139,7 +139,7 @@ public class Receiver implements GpioPinListenerDigital,Runnable
 
         /* For protocols that start low, the sync period looks like
          *               _________
-         * _____________|         |XXXXXXXXXXXX|
+         * _____________|         |??????????|
          *
          * |--1st dur--|-2nd dur-|-Start data-|
          *
@@ -148,7 +148,7 @@ public class Receiver implements GpioPinListenerDigital,Runnable
          * For protocols that start high, the sync period looks like
          *
          *  ______________
-         * |              |____________|XXXXXXXXXXXXX|
+         * |              |____________|?????????|
          *
          * |-filtered out-|--1st dur--|--Start data--|
          *
@@ -298,7 +298,7 @@ class RawMessage
             } else
             {
                 // falling edge so for the duration it was high
-                for (int i = 0; i<pulses; i++) s = s+"\u0305"; //combining overline
+                for (int i = 0; i<pulses; i++) s = s+"\u0305"; //combining over line
                 s = s+"\u02E5"; //MODIFIER LETTER EXTRA-HIGH TONE BAR'
             }
 
@@ -308,7 +308,7 @@ class RawMessage
 }
 class DecodedMessage
 {
-    private final Instant receivedime;
+    private final Instant receivedTime;
     private final String protocolName;
     private final int pulseWidth;
     private int numberOfBits;
@@ -319,7 +319,7 @@ class DecodedMessage
     {
         this.protocolName = protocolName;
         this.pulseWidth = pulseWidth;
-        this.receivedime = t;
+        this.receivedTime = t;
         this.numberOfBits = 0;
         this.code = 0;
         this.codeString = "";
@@ -335,7 +335,7 @@ class DecodedMessage
     public void addBit(boolean bit)
     {
         codeString = codeString + ((bit)?"1":"0");
-        code = ((code<<1) | ((bit)?1:0)); //this will overflow annd lose msb if moe than 64 bits
+        code = ((code<<1) | ((bit)?1:0)); //this will overflow and lose msb if moe than 64 bits
         numberOfBits++;
     }
 
@@ -343,5 +343,5 @@ class DecodedMessage
     public int size() {return codeString.length();}
     public String getBits() {return codeString;}
     public long getCode() {return code;}
-    public Instant getReceivedime(){return receivedime;}
+    public Instant getReceivedTime(){return receivedTime;}
 }

@@ -2,9 +2,6 @@ package org.ladbury.RCSwitch;
 import com.pi4j.io.gpio.*;
 import com.pi4j.io.gpio.event.GpioPinDigitalStateChangeEvent;
 import com.pi4j.io.gpio.event.GpioPinListenerDigital;
-import com.pi4j.wiringpi.*;
-
-import java.util.Arrays;
 
 /**
  * RadioReceiver    -   class for receiving and decoding radio signals via a GPIO pin
@@ -50,7 +47,7 @@ public class RadioReceiver implements GpioPinListenerDigital
     private final /*unsigned*/ int nSeparationLimit = 4300; //minimum gap between transmissions
 
     //results from decoding the protocol
-    private/*unsigned*/ int nReceivedDelay = 0; //calculated pluse length for detected protocol
+    private/*unsigned*/ int nReceivedDelay = 0; //calculated pulse length for detected protocol
     private/*unsigned*/ long nReceivedValue = 0;
     private/*unsigned*/ int nReceivedBitLength = 0;
 

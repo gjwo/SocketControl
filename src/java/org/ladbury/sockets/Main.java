@@ -187,7 +187,7 @@ private static SocketControl s;
     {
         int loopCount = 0;
         System.out.println("Run called");
-        while(loopCount<200)//radioReceiver.getnReceiverInterrupt()>=0
+        while(loopCount<200)
         {
             loopCount++;
             //System.out.print("while: "+loopCount+" ");
@@ -208,7 +208,6 @@ private static SocketControl s;
             {
                 e.printStackTrace();
             }
-            if(loopCount>100) break;
         }
     }
     @Override
