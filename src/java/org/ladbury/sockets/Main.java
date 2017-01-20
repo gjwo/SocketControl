@@ -120,10 +120,14 @@ private static SocketControl s;
         if (testRR)
         {
             receiver = new Receiver(gpio.provisionDigitalInputPin(RaspiPin.GPIO_25,"Receiver Pin",PinPullResistance.PULL_DOWN));
+            receiver.getPulseWidthTolerance();
+            receiver.setPulseWidthTolerance(25);
+
+            receiver.enableReceive();
             System.out.println("Receiver started");
             try
             {
-                TimeUnit.SECONDS.sleep(30);
+                TimeUnit.SECONDS.sleep(15);
             } catch (InterruptedException e)
             {
                 e.printStackTrace();
@@ -132,12 +136,11 @@ private static SocketControl s;
             receiver.disableReceive();
             try
             {
-                TimeUnit.SECONDS.sleep(2);
+                TimeUnit.SECONDS.sleep(2); // wait for run loop to close
             } catch (InterruptedException e)
             {
                 e.printStackTrace();
             }
-            receiver.disableReceive();
         }
         if (testRT)
         {
