@@ -134,12 +134,15 @@ private static SocketControl s;
             }
             System.out.println("Stopping receiver");
             receiver.disableReceive();
-            try
+            while (!receiver.isFinished())
             {
-                TimeUnit.SECONDS.sleep(2); // wait for run loop to close
-            } catch (InterruptedException e)
-            {
-                e.printStackTrace();
+                try
+                {
+                    TimeUnit.SECONDS.sleep(1); // wait for run loop to close
+                } catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
             }
         }
         if (testRT)

@@ -1,7 +1,6 @@
 package org.ladbury.RCSwitch;
 import com.pi4j.io.gpio.*;
 import com.pi4j.wiringpi.Gpio;
-import org.ladbury.RCSwitch.Protocol;
 import org.ladbury.sockets.Main;
 
 /**
@@ -175,7 +174,7 @@ public class RadioTransmitter
     /**
      * Transmit a single high-low pulse.
      */
-    public void transmit(Protocol.HighLow pulses)
+    public void transmit(HighLow pulses)
     {
         PinState firstLogicLevel = (this.protocol.invertedSignal) ? PinState.LOW : PinState.HIGH;
         PinState secondLogicLevel = (this.protocol.invertedSignal) ? PinState.HIGH : PinState.LOW;

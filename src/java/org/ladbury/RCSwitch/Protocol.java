@@ -84,10 +84,4 @@ public enum Protocol
         this.invertedSignal = inv;
     }
 
-    public static class HighLow {
-            public final byte high;
-            public final byte low;
-
-            HighLow( byte h, byte l){high = h;low = l;}
-        }
 }

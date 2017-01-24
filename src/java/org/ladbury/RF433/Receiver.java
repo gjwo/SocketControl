@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
+import org.ladbury.RCSwitch.HighLow;
 import org.ladbury.RCSwitch.Protocol;
 
 
@@ -22,16 +23,16 @@ public class Receiver implements GpioPinListenerDigital,Runnable
     @SuppressWarnings("FieldCanBeLocal")
     private final int MESSAGE_STORAGE_CAPACITY = 1000;
     private static final int MIN_MESSAGE_SIZE = 6; //two bits sync + four bits message
-    private static final int MAX_MESSAGE_SIZE = 66; // limit on long (64bits) => 32 bit * 2 H/L changes per bit + 2 for sync
+    private static final int MAX_MESSAGE_SIZE = 258;//66; // limit on long (64bits) => 32 bit * 2 H/L changes per bit + 2 for sync
 
     private final GpioPinDigitalInput receivePin;
     private RawMessage rawMessage;
     private volatile boolean newMessage;
-    private boolean interrupted;
+    private volatile boolean interrupted;
+    private volatile boolean finished;
     @SuppressWarnings("FieldCanBeLocal")
     private final Thread decoder;
     private final CircularFifoQueue <RawMessage> rawMessages;
-    private long rawMessageCount;
     private final CircularFifoQueue<DecodedMessage> decodedMessages;
 
     private long lastTime;
@@ -43,15 +44,16 @@ public class Receiver implements GpioPinListenerDigital,Runnable
         this.lastTime = 0;
         this.rawMessage = new RawMessage(MAX_MESSAGE_SIZE);
         this.rawMessages = new CircularFifoQueue<>(MESSAGE_STORAGE_CAPACITY);
-        this.rawMessageCount = 0;
         this.decodedMessages = new CircularFifoQueue<>(MESSAGE_STORAGE_CAPACITY);
         this.newMessage = false;
         this.interrupted = false;
+        this.finished = false;
         this.decoder = new Thread(this);
         decoder.start();
     }
 
     public int getPulseWidthTolerance() {return pulseWidthTolerance;}
+    public boolean isFinished(){return finished;}
     public void setPulseWidthTolerance(int pulseWidthTolerance) {this.pulseWidthTolerance = pulseWidthTolerance;}
 
     /**
@@ -92,7 +94,6 @@ public class Receiver implements GpioPinListenerDigital,Runnable
             if (rawMessage.events.size()>= MIN_MESSAGE_SIZE)
             {
                 rawMessages.add(rawMessage); // save only reasonable length rawMessages
-                rawMessageCount++;
                 newMessage =true;
             }
             rawMessage= new RawMessage(MAX_MESSAGE_SIZE);
@@ -183,6 +184,71 @@ public class Receiver implements GpioPinListenerDigital,Runnable
         return false;
     }
 
+    private boolean analyseMsg(RawMessage msg)
+    {
+        if (rawMessage == null) return false;
+        if (rawMessage.events.size() < MIN_MESSAGE_SIZE) return false; // ignore very short transmissions: no device sends them, so this must be noise
+        //Assuming the longer pulse length is the pulse captured in timings[0]
+        int s0Duration = msg.events.get(0).duration;
+        int s1Duration =  msg.events.get(1).duration;
+        int pulseWidth;
+        int syncLengthInPulses;
+        int pulseWidthTolerance;
+        if (s0Duration>= s1Duration)
+        {
+            pulseWidth = s1Duration;
+            syncLengthInPulses = s0Duration/pulseWidth;
+        }else
+        {
+            pulseWidth = s0Duration;
+            syncLengthInPulses = s1Duration/pulseWidth;
+        }
+        int firstDataTiming = (msg.events.get(0).gpioEvent.getState() == PinState.getState(true) ) ? (2) : (1);
+        System.out.format("Pulse width: %d, Sync Length %d, First data %d, ",pulseWidth,syncLengthInPulses, firstDataTiming);
+        pulseWidthTolerance = pulseWidth * this.pulseWidthTolerance / 100;
+        // check if we have two plausible bits
+        int bit1Dur = rawMessage.events.get(firstDataTiming).duration;
+        int bit2Dur = rawMessage.events.get(firstDataTiming+1).duration;
+        byte bit1Pulses = 0;
+        byte bit2Pulses = 0;
+        for (byte i = 1; i<4; i++) if (Math.abs( bit1Dur - pulseWidth * i) < pulseWidthTolerance) {bit1Pulses = i; break;}
+        for (byte i = 1; i<4; i++) if (Math.abs( bit2Dur - pulseWidth * i) < pulseWidthTolerance) {bit2Pulses = i; break;}
+        if (bit1Pulses == 0 | bit2Pulses == 0)
+        {
+            System.out.println("First bits not within pulse tolerance");
+            return false; // expecting bit pulse length ratio of 1,2 or 3 to pulse length for both bits
+        }
+        // we do have pausible bits
+
+        HighLow zero = new HighLow(bit1Pulses,bit2Pulses);  // one and zero may be swapped
+        HighLow one = new HighLow(bit2Pulses,bit1Pulses);
+        System.out.println("Bit zero " + zero.toString() + "Bit one " + one.toString() );
+        DecodedMessage dMsg = new DecodedMessage("new",pulseWidth,rawMessage.getReceivedTime());
+        for (int i = firstDataTiming; i < rawMessage.events.size() - 1; i += 2)
+        {
+            bit1Dur = rawMessage.events.get(i).duration;
+            bit2Dur = rawMessage.events.get(i+1).duration;
+            //check each pair of bits matches the protocol definition for
+            if (Math.abs( bit1Dur - pulseWidth * zero.high) < pulseWidthTolerance &&
+                    Math.abs(bit2Dur - pulseWidth * zero.low) < pulseWidthTolerance)
+            {
+                // matched bit 0
+                dMsg.addBit(false);
+            } else if (Math.abs(bit1Dur - pulseWidth * one.high) < pulseWidthTolerance &&
+                    Math.abs(bit2Dur - pulseWidth * one.low) < pulseWidthTolerance)
+            {
+                // matched bit 1
+                dMsg.addBit(true);
+            } else
+            {
+                System.out.println("bad bits in message");
+                return false; // Failed, out of spec bit pair cannot be translated
+            }
+        }
+        decodedMessages.add(dMsg);
+        return true;
+    }
+
     /**
      * Run  -   The decoding loop
      */
@@ -194,10 +260,11 @@ public class Receiver implements GpioPinListenerDigital,Runnable
         {
             try
             {
-                TimeUnit.MILLISECONDS.sleep(500);
+                TimeUnit.MILLISECONDS.sleep(200);
             } catch (InterruptedException e)
             {
                 interrupted = true;
+                System.out.println("run interrupted");
                 break;
             }
             if (newMessage)
@@ -215,11 +282,11 @@ public class Receiver implements GpioPinListenerDigital,Runnable
             }
         }
         System.out.println("Decoding stopped");
-        System.out.printf("Summary - Decoded Messages: %d, Raw rawMessages: %d%n", rawMessageCount,decodedMessages.size());
+        System.out.printf("Summary - Decoded Messages: %d, Raw rawMessages: %d%n",decodedMessages.size(), rawMessages.size());
         for(DecodedMessage d:decodedMessages) System.out.println(d.toString());
         System.out.println("Messages not decoded");
         for(RawMessage r:rawMessages)
-        {
+        {   analyseMsg(r);
             System.out.println(r.toString());
             System.out.println(r.waveform());
         }
@@ -228,6 +295,7 @@ public class Receiver implements GpioPinListenerDigital,Runnable
         {
             System.out.println(r.timingsToCSV());
         }
+        finished = true; // let main know
     }
 }
 
@@ -267,7 +335,7 @@ class RawMessage
         String s = "";
         for (RF433Event e: events)
         {
-            s = s+e.duration+" "+e.gpioEvent.getState().toString().substring(0,2)+" ";
+            s = s+e.duration+" "+e.gpioEvent.getState().toString().substring(0,2)+" "; // duration and new pin state
         }
         return s;
     }
@@ -286,22 +354,27 @@ class RawMessage
         int pulses;
         int pulseWidth;
 
-        pulseWidth = events.get(1).duration; //mostly right!
+        // Characters tried for drawing the pulse train
+        // Low line - "\u0332" Combining Low Line, "\uFF3F"; FULLWIDTH LOW LINE
+        // High line - "\u203E" over line, "\u0305" COMBINING OVERLINE
+        // Vertical -  "\u20D2" COMBINING LONG VERTICAL LINE OVERLAY, "\u007C" Vertical line, "\u02E9" MODIFIER LETTER EXTRA-LOW TONE BAR
+
+        if (events.get(0).duration > 50000) {return "Excessive duration in pluse 0 "+events.get(0).duration;}
+        pulseWidth = 100; //events.get(1).duration; //mostly right!
         for (RF433Event e: events)
         {
             pulses = e.duration/pulseWidth;
             if (e.gpioEvent.getEdge() == PinEdge.RISING)
             {
                 // rising edge so for the duration it was low
-                for (int i = 0; i<pulses; i++) s = s+'_';
-                s = s+"\u02E9"; //MODIFIER LETTER EXTRA-LOW TONE BAR
+                for (int i = 0; i<pulses; i++) s = s+ "_";
+                s = s+"\u20D2";
             } else
             {
                 // falling edge so for the duration it was high
-                for (int i = 0; i<pulses; i++) s = s+"\u0305"; //combining over line
-                s = s+"\u02E5"; //MODIFIER LETTER EXTRA-HIGH TONE BAR'
+                for (int i = 0; i<pulses; i++) s = s+"\u0305";
+                s = s+"\u20D2";
             }
-
         }
         return s;
     }
@@ -334,7 +407,7 @@ class DecodedMessage
 
     public void addBit(boolean bit)
     {
-        codeString = codeString + ((bit)?"1":"0");
+        codeString += ((bit)?"1":"0");
         code = ((code<<1) | ((bit)?1:0)); //this will overflow and lose msb if moe than 64 bits
         numberOfBits++;
     }
