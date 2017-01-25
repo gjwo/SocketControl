@@ -209,21 +209,22 @@ public class Receiver implements GpioPinListenerDigital,Runnable
         // check if we have two plausible bits
         int bit1Dur = rawMessage.events.get(firstDataTiming).duration;
         int bit2Dur = rawMessage.events.get(firstDataTiming+1).duration;
+        System.out.println("bit1Dur = " + bit1Dur+" bit2Dur = " + bit2Dur);
         byte bit1Pulses = 0;
         byte bit2Pulses = 0;
-        for (byte i = 1; i<4; i++) if (Math.abs( bit1Dur - pulseWidth * i) < pulseWidthTolerance) {bit1Pulses = i; break;}
-        for (byte i = 1; i<4; i++) if (Math.abs( bit2Dur - pulseWidth * i) < pulseWidthTolerance) {bit2Pulses = i; break;}
+        for (byte i = 1; i<5; i++) {if (Math.abs( bit1Dur - (pulseWidth * i)) < pulseWidthTolerance) {bit1Pulses = i; break;}}
+        for (byte i = 1; i<5; i++) {if (Math.abs(bit2Dur - (pulseWidth * i)) < pulseWidthTolerance) {bit2Pulses = i; break;}}
         if (bit1Pulses == 0 | bit2Pulses == 0)
         {
             System.out.println("First bits not within pulse tolerance");
-            return false; // expecting bit pulse length ratio of 1,2 or 3 to pulse length for both bits
+            return false; // expecting bit pulse length ratio of 1,2,3,4 to pulse length for both bits
         }
         // we do have pausible bits
 
         HighLow zero = new HighLow(bit1Pulses,bit2Pulses);  // one and zero may be swapped
         HighLow one = new HighLow(bit2Pulses,bit1Pulses);
-        System.out.println("Bit zero " + zero.toString() + "Bit one " + one.toString() );
-        DecodedMessage dMsg = new DecodedMessage("new",pulseWidth,rawMessage.getReceivedTime());
+        System.out.print("Bit zero " + zero.toString() + " Bit one " + one.toString() );
+        DecodedMessage dMsg = new DecodedMessage("***NEW***",pulseWidth,rawMessage.getReceivedTime());
         for (int i = firstDataTiming; i < rawMessage.events.size() - 1; i += 2)
         {
             bit1Dur = rawMessage.events.get(i).duration;
@@ -241,7 +242,7 @@ public class Receiver implements GpioPinListenerDigital,Runnable
                 dMsg.addBit(true);
             } else
             {
-                System.out.println("bad bits in message");
+                System.out.println(" bad bits in message at "+i);
                 return false; // Failed, out of spec bit pair cannot be translated
             }
         }
@@ -353,14 +354,12 @@ class RawMessage
         String s = "";
         int pulses;
         int pulseWidth;
-
         // Characters tried for drawing the pulse train
-        // Low line - "\u0332" Combining Low Line, "\uFF3F"; FULLWIDTH LOW LINE
-        // High line - "\u203E" over line, "\u0305" COMBINING OVERLINE
+        // Low line - "_", "\u0332" Combining Low Line, "\uFF3F"; FULLWIDTH LOW LINE
+        // High line - "\u0305" COMBINING OVERLINE, "\u203E" over line
         // Vertical -  "\u20D2" COMBINING LONG VERTICAL LINE OVERLAY, "\u007C" Vertical line, "\u02E9" MODIFIER LETTER EXTRA-LOW TONE BAR
-
         if (events.get(0).duration > 50000) {return "Excessive duration in pluse 0 "+events.get(0).duration;}
-        pulseWidth = 100; //events.get(1).duration; //mostly right!
+        pulseWidth = 100; //gives a reasonable pulse train
         for (RF433Event e: events)
         {
             pulses = e.duration/pulseWidth;

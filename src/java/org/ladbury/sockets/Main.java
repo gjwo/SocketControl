@@ -127,7 +127,7 @@ private static SocketControl s;
             System.out.println("Receiver started");
             try
             {
-                TimeUnit.SECONDS.sleep(15);
+                TimeUnit.SECONDS.sleep(40);
             } catch (InterruptedException e)
             {
                 e.printStackTrace();
